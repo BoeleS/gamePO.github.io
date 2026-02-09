@@ -2,15 +2,17 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <title>Aim Trainer</title>
+  <title>Aim Trainer Pro</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="menu">
-  <h1>Aim Trainer</h1>
-  <button onclick="startGame('static')">Static Targets</button>
-  <button onclick="startGame('moving')">Moving Targets</button>
+  <h1>AIM TRAINER</h1>
+  <p>Kovaaks / Aimlabs style</p>
+
+  <button onclick="startGame('grid')">GRIDSHOT</button>
+  <button onclick="startGame('tracking')">TRACKING</button>
 </div>
 
 <div id="hud">
@@ -21,6 +23,8 @@
 
 <canvas id="game"></canvas>
 
+<script src="targets.js"></script>
+<script src="ui.js"></script>
 <script src="game.js"></script>
 </body>
 </html>
