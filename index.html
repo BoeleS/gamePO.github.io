@@ -2,23 +2,25 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <title>FPS Game</title>
+  <title>Aim Trainer</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <div id="hud">
-    <span id="health">❤️ 100</span>
-    <span id="score">Score: 0</span>
-  </div>
+<div id="menu">
+  <h1>Aim Trainer</h1>
+  <button onclick="startGame('static')">Static Targets</button>
+  <button onclick="startGame('moving')">Moving Targets</button>
+</div>
 
-  <div id="menu">
-    <h1>FPS Game</h1>
-    <p>Klik om te starten</p>
-  </div>
+<div id="hud">
+  <span id="time">⏱ 180</span>
+  <span id="score">Score: 0</span>
+  <span id="accuracy">Accuracy: 100%</span>
+</div>
 
-  <canvas id="game"></canvas>
+<canvas id="game"></canvas>
 
-  <script src="game.js"></script>
+<script src="game.js"></script>
 </body>
 </html>
