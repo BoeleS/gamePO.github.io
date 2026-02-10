@@ -49,15 +49,19 @@ let angle = 0;
 let mouseX = window.innerWidth / 2;
 let mouseY = window.innerHeight / 2;
 
-window.addEventListener("mousemove", e => {
+document.addEventListener("mousemove", e => {
   mouseX = e.clientX;
   mouseY = e.clientY;
 });
 
-// ================= ESC KEY =================
-window.addEventListener("keydown", e => {
+// ================= ESC KEY (FIXED) =================
+document.addEventListener("keydown", e => {
   if (e.key === "Escape" && running) {
-    paused ? resumeGame() : pauseGame();
+    if (paused) {
+      resumeGame();
+    } else {
+      pauseGame();
+    }
   }
 });
 
@@ -144,7 +148,7 @@ canvas.addEventListener("click", () => {
   });
 });
 
-// ================= TIMER =================
+// ================= TIMER (30 SEC) =================
 setInterval(() => {
   if (!running || paused) return;
 
@@ -186,14 +190,14 @@ function update() {
     t.x = canvas.width / 2 + Math.cos(angle) * radius;
     t.y = canvas.height / 2 + Math.sin(angle) * radius;
 
-    shots += 1;
+    shots++;
 
     const dx = mouseX - t.x;
     const dy = mouseY - t.y;
 
     if (Math.hypot(dx, dy) <= t.r) {
-      score += 1;
-      hits += 1;
+      score++;
+      hits++;
     }
   }
 

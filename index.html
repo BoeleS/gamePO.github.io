@@ -5,25 +5,21 @@
   <title>Aim Trainer</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body tabindex="0">
 
-<!-- MENU -->
 <div id="menu" class="overlay">
   <h1>AIM TRAINER</h1>
-  <p>Kovaaks / Aimlabs style</p>
-
+  <p>Kies een mode</p>
   <button onclick="startGame('grid')">GRIDSHOT</button>
   <button onclick="startGame('tracking')">TRACKING</button>
 </div>
 
-<!-- HUD -->
-<div id="hud" class="overlay hud">
-  <span id="time">⏱ 180</span>
+<div id="hud" class="overlay hud" style="display:none;">
+  <span id="time">⏱ 30</span>
   <span id="score">Score: 0</span>
-  <span id="accuracy">Accuracy: 100%</span>
+  <span id="accuracy">Accuracy: 0%</span>
 </div>
 
-<!-- RESULTS -->
 <div id="results" class="overlay" style="display:none;">
   <h1>RESULTS</h1>
   <p id="rScore"></p>
