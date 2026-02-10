@@ -1,3 +1,7 @@
+// ================= CANVAS =================
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
@@ -5,110 +9,168 @@ function resize() {
 resize();
 window.addEventListener("resize", resize);
 
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
+// ================= UI =================
 const menu = document.getElementById("menu");
 const hud = document.getElementById("hud");
+const results = document.getElementById("results");
+
 const scoreEl = document.getElementById("score");
 const timeEl = document.getElementById("time");
 const accEl = document.getElementById("accuracy");
 
-let targets = [];
+// ================= GAME STATE =================
+let mode = "";
+let running = false;
+
 let score = 0;
 let shots = 0;
 let hits = 0;
 let timeLeft = 180;
-let running = false;
-let mode = "";
 
-/* START */
+let targets = [];
+let angle = 0;
+
+// ================= START =================
 function startGame(selectedMode) {
   mode = selectedMode;
+
   menu.style.display = "none";
-  hud.style.display = "block";
+  results.style.display = "none";
+  hud.style.display = "flex";
 
   score = 0;
   shots = 0;
   hits = 0;
   timeLeft = 180;
   targets = [];
+  angle = 0;
   running = true;
 
   canvas.requestPointerLock();
-  targets.push(createTarget(mode));
+
+  if (mode === "grid") spawnGridTargets();
+  if (mode === "tracking") spawnTrackingTarget();
 }
 
-/* SHOOT */
+// ================= TARGETS =================
+function spawnGridTargets() {
+  targets = [];
+  for (let i = 0; i < 6; i++) {
+    targets.push(createTarget());
+  }
+}
+
+function createTarget() {
+  return {
+    x: Math.random() * (canvas.width - 100) + 50,
+    y: Math.random() * (canvas.height - 100) + 50,
+    r: 22
+  };
+}
+
+function spawnTrackingTarget() {
+  targets = [{
+    x: canvas.width / 2,
+    y: canvas.height / 2,
+    r: 30
+  }];
+}
+
+// ================= SHOOTING =================
 window.addEventListener("mousedown", () => {
   if (!running) return;
+
   shots++;
+  let hit = false;
 
   targets.forEach((t, i) => {
     const dx = canvas.width / 2 - t.x;
     const dy = canvas.height / 2 - t.y;
-    if (Math.hypot(dx, dy) < t.r) {
+
+    if (Math.hypot(dx, dy) <= t.r) {
+      hit = true;
       hits++;
       score += 100;
-      targets.splice(i, 1);
-      targets.push(createTarget(mode));
+
+      if (mode === "grid") {
+        targets[i] = createTarget();
+      }
     }
   });
+
+  if (!hit) score = Math.max(0, score - 10);
 });
 
-/* TIMER */
+// ================= TIMER =================
 setInterval(() => {
   if (!running) return;
   timeLeft--;
-  if (timeLeft <= 0) {
-    running = false;
-    showResults(score, Math.round((hits / shots) * 100), hits, shots);
-  }
+
+  if (timeLeft <= 0) endGame();
 }, 1000);
 
-/* UPDATE */
+// ================= END =================
+function endGame() {
+  running = false;
+  document.exitPointerLock();
+  hud.style.display = "none";
+  results.style.display = "flex";
+
+  const acc = shots === 0 ? 0 : Math.round((hits / shots) * 100);
+
+  document.getElementById("rScore").textContent = `Score: ${score}`;
+  document.getElementById("rHits").textContent = `Hits: ${hits}`;
+  document.getElementById("rShots").textContent = `Shots: ${shots}`;
+  document.getElementById("rAcc").textContent = `Accuracy: ${acc}%`;
+}
+
+function backToMenu() {
+  results.style.display = "none";
+  menu.style.display = "flex";
+}
+
+// ================= UPDATE =================
 function update() {
   if (!running) return;
 
   if (mode === "tracking") {
-    targets.forEach(t => {
-      t.x += t.vx;
-      t.y += t.vy;
-      if (t.x < 0 || t.x > canvas.width) t.vx *= -1;
-      if (t.y < 0 || t.y > canvas.height) t.vy *= -1;
-    });
+    angle += 0.02;
+    const radius = 200;
+
+    targets[0].x = canvas.width / 2 + Math.cos(angle) * radius;
+    targets[0].y = canvas.height / 2 + Math.sin(angle) * radius;
   }
 
   const acc = shots === 0 ? 100 : Math.round((hits / shots) * 100);
+
   scoreEl.textContent = `Score: ${score}`;
   timeEl.textContent = `⏱ ${timeLeft}`;
   accEl.textContent = `Accuracy: ${acc}%`;
 }
 
-/* DRAW */
+// ================= DRAW =================
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   targets.forEach(t => {
-    ctx.fillStyle = "#ff3b3b";
     ctx.beginPath();
     ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+    ctx.fillStyle = "#ff3b3b";
     ctx.fill();
   });
 
-  // crosshair
+  // Crosshair
   ctx.strokeStyle = "white";
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(canvas.width/2 - 8, canvas.height/2);
-  ctx.lineTo(canvas.width/2 + 8, canvas.height/2);
-  ctx.moveTo(canvas.width/2, canvas.height/2 - 8);
-  ctx.lineTo(canvas.width/2, canvas.height/2 + 8);
+  ctx.moveTo(canvas.width / 2 - 8, canvas.height / 2);
+  ctx.lineTo(canvas.width / 2 + 8, canvas.height / 2);
+  ctx.moveTo(canvas.width / 2, canvas.height / 2 - 8);
+  ctx.lineTo(canvas.width / 2, canvas.height / 2 + 8);
   ctx.stroke();
 }
 
-/* LOOP */
+// ================= LOOP =================
 function loop() {
   update();
   draw();

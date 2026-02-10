@@ -1,16 +1,40 @@
-<div id="menu">
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <title>Aim Trainer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- MENU -->
+<div id="menu" class="overlay">
   <h1>AIM TRAINER</h1>
   <p>Kovaaks / Aimlabs style</p>
 
-  <button id="gridBtn">GRIDSHOT</button>
-  <button id="trackingBtn">TRACKING</button>
+  <button onclick="startGame('grid')">GRIDSHOT</button>
+  <button onclick="startGame('tracking')">TRACKING</button>
 </div>
 
-<div id="results" style="display:none;">
+<!-- HUD -->
+<div id="hud" class="overlay hud">
+  <span id="time">⏱ 180</span>
+  <span id="score">Score: 0</span>
+  <span id="accuracy">Accuracy: 100%</span>
+</div>
+
+<!-- RESULTS -->
+<div id="results" class="overlay" style="display:none;">
   <h1>RESULTS</h1>
-  <p id="resScore"></p>
-  <p id="resHits"></p>
-  <p id="resShots"></p>
-  <p id="resAcc"></p>
+  <p id="rScore"></p>
+  <p id="rHits"></p>
+  <p id="rShots"></p>
+  <p id="rAcc"></p>
   <button onclick="backToMenu()">BACK TO MENU</button>
 </div>
+
+<canvas id="game"></canvas>
+
+<script src="game.js"></script>
+</body>
+</html>
