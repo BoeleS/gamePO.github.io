@@ -1,4 +1,12 @@
 // ================= CANVAS =================
+let mouseX = window.innerWidth / 2;
+let mouseY = window.innerHeight / 2;
+
+window.addEventListener("mousemove", e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
@@ -46,7 +54,7 @@ function startGame(selectedMode) {
   angle = 0;
   running = true;
 
-  canvas.requestPointerLock();
+  document.exitPointerLock();
 
   if (mode === "grid") spawnGridTargets();
   if (mode === "tracking") spawnTrackingTarget();
@@ -84,8 +92,8 @@ window.addEventListener("mousedown", () => {
   let hit = false;
 
   targets.forEach((t, i) => {
-    const dx = canvas.width / 2 - t.x;
-    const dy = canvas.height / 2 - t.y;
+    const dx = mouseX - t.x;
+const dy = mouseY - t.y;
 
     if (Math.hypot(dx, dy) <= t.r) {
       hit = true;
@@ -163,10 +171,11 @@ function draw() {
   ctx.strokeStyle = "white";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(canvas.width / 2 - 8, canvas.height / 2);
-  ctx.lineTo(canvas.width / 2 + 8, canvas.height / 2);
-  ctx.moveTo(canvas.width / 2, canvas.height / 2 - 8);
-  ctx.lineTo(canvas.width / 2, canvas.height / 2 + 8);
+  ctx.moveTo(mouseX - 8, mouseY);
+ctx.lineTo(mouseX + 8, mouseY);
+ctx.moveTo(mouseX, mouseY - 8);
+ctx.lineTo(mouseX, mouseY + 8);
+
   ctx.stroke();
 }
 
