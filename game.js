@@ -69,7 +69,9 @@ function start(m) {
   running = true;
   paused = false;
 
-  score = hits = shots = 0;
+  score = 0;
+  hits = 0;
+  shots = 0;
   timeLeft = 30;
   angle = 0;
 
@@ -118,18 +120,23 @@ function newTarget() {
   };
 }
 
-// ===== CLICK GRIDSHOT =====
+// ===== GRIDSHOT CLICK (MISS COUNTS) =====
 canvas.addEventListener("click", () => {
   if (!running || paused || mode !== "grid") return;
+
+  shots++; // ELKE KLIK = SCHOT
+  let hitSomething = false;
 
   targets.forEach((t, i) => {
     if (Math.hypot(mouseX - t.x, mouseY - t.y) <= t.r) {
       score++;
       hits++;
-      shots++;
       targets[i] = newTarget();
+      hitSomething = true;
     }
   });
+
+  // miss = accuracy gaat automatisch omlaag
 });
 
 // ===== TIMER =====
