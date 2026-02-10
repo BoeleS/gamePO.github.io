@@ -1,14 +1,20 @@
+const results = document.getElementById("results");
+
+document.getElementById("gridBtn").onclick = () => startGame("grid");
+document.getElementById("trackingBtn").onclick = () => startGame("tracking");
+
 function showResults(score, accuracy, hits, shots) {
   document.exitPointerLock();
   hud.style.display = "none";
-  menu.style.display = "flex";
+  results.style.display = "flex";
 
-  menu.innerHTML = `
-    <h1>RESULTS</h1>
-    <div class="result">Score: ${score}</div>
-    <div class="result">Hits: ${hits}</div>
-    <div class="result">Shots: ${shots}</div>
-    <div class="result">Accuracy: ${accuracy}%</div>
-    <button onclick="location.reload()">BACK TO MENU</button>
-  `;
+  document.getElementById("resScore").textContent = `Score: ${score}`;
+  document.getElementById("resHits").textContent = `Hits: ${hits}`;
+  document.getElementById("resShots").textContent = `Shots: ${shots}`;
+  document.getElementById("resAcc").textContent = `Accuracy: ${accuracy}%`;
+}
+
+function backToMenu() {
+  results.style.display = "none";
+  menu.style.display = "flex";
 }
