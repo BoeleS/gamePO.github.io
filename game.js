@@ -1,12 +1,4 @@
 // ================= CANVAS =================
-let mouseX = window.innerWidth / 2;
-let mouseY = window.innerHeight / 2;
-
-window.addEventListener("mousemove", e => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-});
-
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
@@ -38,6 +30,15 @@ let timeLeft = 180;
 let targets = [];
 let angle = 0;
 
+// ================= MOUSE =================
+let mouseX = window.innerWidth / 2;
+let mouseY = window.innerHeight / 2;
+
+window.addEventListener("mousemove", e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
 // ================= START =================
 function startGame(selectedMode) {
   mode = selectedMode;
@@ -54,26 +55,24 @@ function startGame(selectedMode) {
   angle = 0;
   running = true;
 
-  document.exitPointerLock();
-
   if (mode === "grid") spawnGridTargets();
   if (mode === "tracking") spawnTrackingTarget();
 }
 
 // ================= TARGETS =================
-function spawnGridTargets() {
-  targets = [];
-  for (let i = 0; i < 6; i++) {
-    targets.push(createTarget());
-  }
-}
-
 function createTarget() {
   return {
     x: Math.random() * (canvas.width - 100) + 50,
     y: Math.random() * (canvas.height - 100) + 50,
     r: 22
   };
+}
+
+function spawnGridTargets() {
+  targets = [];
+  for (let i = 0; i < 6; i++) {
+    targets.push(createTarget());
+  }
 }
 
 function spawnTrackingTarget() {
@@ -84,43 +83,35 @@ function spawnTrackingTarget() {
   }];
 }
 
-// ================= SHOOTING =================
-window.addEventListener("mousedown", () => {
-  if (!running) return;
-
-  shots++;
-  let hit = false;
+// ================= GRIDSHOT CLICK =================
+canvas.addEventListener("click", () => {
+  if (!running || mode !== "grid") return;
 
   targets.forEach((t, i) => {
     const dx = mouseX - t.x;
-const dy = mouseY - t.y;
+    const dy = mouseY - t.y;
 
     if (Math.hypot(dx, dy) <= t.r) {
-      hit = true;
-      hits++;
-      score += 100;
+      score += 1;
+      hits += 1;
+      shots += 1;
 
-      if (mode === "grid") {
-        targets[i] = createTarget();
-      }
+      targets[i] = createTarget();
     }
   });
-
-  if (!hit) score = Math.max(0, score - 10);
 });
 
 // ================= TIMER =================
 setInterval(() => {
   if (!running) return;
-  timeLeft--;
 
+  timeLeft--;
   if (timeLeft <= 0) endGame();
 }, 1000);
 
 // ================= END =================
 function endGame() {
   running = false;
-  document.exitPointerLock();
   hud.style.display = "none";
   results.style.display = "flex";
 
@@ -142,14 +133,25 @@ function update() {
   if (!running) return;
 
   if (mode === "tracking") {
-    angle += 0.02;
-    const radius = 200;
+    angle += 0.03;
+    const radius = 220;
+    const t = targets[0];
 
-    targets[0].x = canvas.width / 2 + Math.cos(angle) * radius;
-    targets[0].y = canvas.height / 2 + Math.sin(angle) * radius;
+    t.x = canvas.width / 2 + Math.cos(angle) * radius;
+    t.y = canvas.height / 2 + Math.sin(angle) * radius;
+
+    const dx = mouseX - t.x;
+    const dy = mouseY - t.y;
+
+    shots += 1;
+
+    if (Math.hypot(dx, dy) <= t.r) {
+      score += 1;
+      hits += 1;
+    }
   }
 
-  const acc = shots === 0 ? 100 : Math.round((hits / shots) * 100);
+  const acc = shots === 0 ? 0 : Math.round((hits / shots) * 100);
 
   scoreEl.textContent = `Score: ${score}`;
   timeEl.textContent = `⏱ ${timeLeft}`;
@@ -160,6 +162,7 @@ function update() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Targets
   targets.forEach(t => {
     ctx.beginPath();
     ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
@@ -167,15 +170,14 @@ function draw() {
     ctx.fill();
   });
 
-  // Crosshair
+  // Crosshair (muisgestuurd)
   ctx.strokeStyle = "white";
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(mouseX - 8, mouseY);
-ctx.lineTo(mouseX + 8, mouseY);
-ctx.moveTo(mouseX, mouseY - 8);
-ctx.lineTo(mouseX, mouseY + 8);
-
+  ctx.lineTo(mouseX + 8, mouseY);
+  ctx.moveTo(mouseX, mouseY - 8);
+  ctx.lineTo(mouseX, mouseY + 8);
   ctx.stroke();
 }
 
