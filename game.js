@@ -18,14 +18,29 @@ const scoreEl = document.getElementById("score");
 const timeEl = document.getElementById("time");
 const accEl = document.getElementById("accuracy");
 
+// ================= PAUSE MENU =================
+const pauseMenu = document.createElement("div");
+pauseMenu.className = "overlay";
+pauseMenu.style.display = "none";
+pauseMenu.innerHTML = `
+  <h1>PAUSED</h1>
+  <button id="resumeBtn">RESUME</button>
+  <button id="menuBtn">BACK TO MENU</button>
+`;
+document.body.appendChild(pauseMenu);
+
+document.getElementById("resumeBtn").onclick = resumeGame;
+document.getElementById("menuBtn").onclick = backToMenuFromPause;
+
 // ================= GAME STATE =================
 let mode = "";
 let running = false;
+let paused = false;
 
 let score = 0;
 let shots = 0;
 let hits = 0;
-let timeLeft = 180;
+let timeLeft = 30;
 
 let targets = [];
 let angle = 0;
@@ -39,24 +54,53 @@ window.addEventListener("mousemove", e => {
   mouseY = e.clientY;
 });
 
+// ================= ESC KEY =================
+window.addEventListener("keydown", e => {
+  if (e.key === "Escape" && running) {
+    paused ? resumeGame() : pauseGame();
+  }
+});
+
 // ================= START =================
 function startGame(selectedMode) {
   mode = selectedMode;
 
   menu.style.display = "none";
   results.style.display = "none";
+  pauseMenu.style.display = "none";
   hud.style.display = "flex";
 
   score = 0;
   shots = 0;
   hits = 0;
-  timeLeft = 180;
+  timeLeft = 30;
   targets = [];
   angle = 0;
+
   running = true;
+  paused = false;
 
   if (mode === "grid") spawnGridTargets();
   if (mode === "tracking") spawnTrackingTarget();
+}
+
+// ================= PAUSE =================
+function pauseGame() {
+  paused = true;
+  pauseMenu.style.display = "flex";
+}
+
+function resumeGame() {
+  paused = false;
+  pauseMenu.style.display = "none";
+}
+
+function backToMenuFromPause() {
+  paused = false;
+  running = false;
+  pauseMenu.style.display = "none";
+  hud.style.display = "none";
+  menu.style.display = "flex";
 }
 
 // ================= TARGETS =================
@@ -85,7 +129,7 @@ function spawnTrackingTarget() {
 
 // ================= GRIDSHOT CLICK =================
 canvas.addEventListener("click", () => {
-  if (!running || mode !== "grid") return;
+  if (!running || paused || mode !== "grid") return;
 
   targets.forEach((t, i) => {
     const dx = mouseX - t.x;
@@ -95,7 +139,6 @@ canvas.addEventListener("click", () => {
       score += 1;
       hits += 1;
       shots += 1;
-
       targets[i] = createTarget();
     }
   });
@@ -103,7 +146,7 @@ canvas.addEventListener("click", () => {
 
 // ================= TIMER =================
 setInterval(() => {
-  if (!running) return;
+  if (!running || paused) return;
 
   timeLeft--;
   if (timeLeft <= 0) endGame();
@@ -112,7 +155,10 @@ setInterval(() => {
 // ================= END =================
 function endGame() {
   running = false;
+  paused = false;
+
   hud.style.display = "none";
+  pauseMenu.style.display = "none";
   results.style.display = "flex";
 
   const acc = shots === 0 ? 0 : Math.round((hits / shots) * 100);
@@ -130,7 +176,7 @@ function backToMenu() {
 
 // ================= UPDATE =================
 function update() {
-  if (!running) return;
+  if (!running || paused) return;
 
   if (mode === "tracking") {
     angle += 0.03;
@@ -140,10 +186,10 @@ function update() {
     t.x = canvas.width / 2 + Math.cos(angle) * radius;
     t.y = canvas.height / 2 + Math.sin(angle) * radius;
 
+    shots += 1;
+
     const dx = mouseX - t.x;
     const dy = mouseY - t.y;
-
-    shots += 1;
 
     if (Math.hypot(dx, dy) <= t.r) {
       score += 1;
@@ -162,7 +208,6 @@ function update() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Targets
   targets.forEach(t => {
     ctx.beginPath();
     ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
@@ -170,7 +215,6 @@ function draw() {
     ctx.fill();
   });
 
-  // Crosshair (muisgestuurd)
   ctx.strokeStyle = "white";
   ctx.lineWidth = 2;
   ctx.beginPath();
