@@ -1,4 +1,4 @@
-// ================= BASIC STATE =================
+// ================= GLOBAL STATE =================
 let mode = "";
 let running = false;
 let paused = false;
@@ -55,9 +55,16 @@ document.addEventListener("mousemove", e => {
   mouseX = e.clientX;
   mouseY = e.clientY;
 
+  // First person look for 3D
   if (mode === "arena3d") {
     camera.rotation.y -= e.movementX * 0.002;
     camera.rotation.x -= e.movementY * 0.002;
+
+    // Clamp vertical rotation
+    camera.rotation.x = Math.max(
+      -Math.PI / 2,
+      Math.min(Math.PI / 2, camera.rotation.x)
+    );
   }
 });
 
@@ -92,7 +99,6 @@ function newTarget() {
 
 // ================= 3D ENGINE =================
 let scene, camera, renderer, arenaTarget;
-let raycaster = new THREE.Raycaster();
 
 function initArena() {
 
@@ -103,7 +109,12 @@ function initArena() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
 
-  camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(
+    75,
+    innerWidth / innerHeight,
+    0.1,
+    1000
+  );
   camera.position.set(0, 2, 8);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -121,6 +132,7 @@ function initArena() {
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
 
+  // Bergen
   for (let i = 0; i < 30; i++) {
     const mountain = new THREE.Mesh(
       new THREE.ConeGeometry(5 + Math.random()*5, 10 + Math.random()*10, 6),
@@ -134,6 +146,7 @@ function initArena() {
     scene.add(mountain);
   }
 
+  // Springend blok
   arenaTarget = new THREE.Mesh(
     new THREE.BoxGeometry(1, 2, 1),
     new THREE.MeshStandardMaterial({ color: 0xff0000 })
@@ -154,12 +167,23 @@ function animateArena() {
   arenaTarget.position.z = Math.sin(angle) * 6;
   arenaTarget.position.y = 1 + Math.abs(Math.sin(angle*3)) * 2;
 
-  raycaster.setFromCamera({x:0,y:0}, camera);
-  const intersects = raycaster.intersectObject(arenaTarget);
+  // ================= NIEUWE HIT DETECTIE =================
+  // Projecteer 3D positie naar schermcoördinaten
+  const vector = arenaTarget.position.clone();
+  vector.project(camera);
+
+  // vector.x en vector.y zijn nu tussen -1 en 1
+  // 0,0 is midden van scherm
 
   shots++;
-  if (intersects.length > 0) {
-    score += 0.5;
+
+  const centerTolerance = 0.05; // hoe precies je moet mikken
+
+  if (
+    Math.abs(vector.x) < centerTolerance &&
+    Math.abs(vector.y) < centerTolerance
+  ) {
+    score += 1;   // altijd score omhoog
     hits++;
   }
 
@@ -211,7 +235,7 @@ function endGame() {
   rAcc.textContent = `Accuracy: ${acc}%`;
 }
 
-// ================= LOOP =================
+// ================= 2D LOOP =================
 function loop() {
   if (running && !paused && mode !== "arena3d") {
 
