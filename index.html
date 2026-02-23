@@ -2,35 +2,36 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <title>Aim Trainer Pro</title>
+  <title>Aim Trainer</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="menu" class="overlay">
-  <h1>AIM TRAINER</h1>
-  <button id="gridBtn">GRIDSHOT</button>
-  <button id="trackBtn">TRACKING</button>
-  <button id="arenaBtn">3D ARENA</button>
+<div id="menu">
+  <h1>Aim Trainer</h1>
+  <button onclick="startGame('grid')">Gridshot</button>
+  <button onclick="startGame('tracking')">Tracking</button>
+  <button onclick="startGame('arena')">3D Arena</button>
 </div>
 
-<div id="hud" class="overlay hud" style="display:none;">
-  <span id="time">⏱ 30</span>
-  <span id="score">Score: 0</span>
-  <span id="accuracy">Accuracy: 0%</span>
+<div id="hud">
+  <div id="score">Score: 0</div>
+  <div id="accuracy">Accuracy: 0%</div>
+  <div id="timer">⏱ 30</div>
 </div>
 
-<div id="results" class="overlay" style="display:none;">
-  <h1>RESULTS</h1>
-  <p id="rScore"></p>
-  <p id="rHits"></p>
-  <p id="rShots"></p>
-  <p id="rAcc"></p>
-  <button id="backBtn">BACK TO MENU</button>
+<div id="results">
+  <h2>Resultaten</h2>
+  <p id="finalScore"></p>
+  <p id="finalHits"></p>
+  <p id="finalShots"></p>
+  <p id="finalAccuracy"></p>
+  <button onclick="backToMenu()">Terug</button>
 </div>
 
-<canvas id="game"></canvas>
+<canvas id="canvas"></canvas>
 
+<!-- THREE.JS via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
 <script src="game.js"></script>
 

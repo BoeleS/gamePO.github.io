@@ -1,131 +1,191 @@
-// ================= GLOBAL STATE =================
+// ================= GLOBAL =================
 let mode = "";
-let running = false;
-let paused = false;
-
 let score = 0;
 let hits = 0;
 let shots = 0;
 let timeLeft = 30;
-let angle = 0;
+let running = false;
+let timerInterval;
 
-// ================= UI =================
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-
+// UI
 const menu = document.getElementById("menu");
 const hud = document.getElementById("hud");
 const results = document.getElementById("results");
 
 const scoreEl = document.getElementById("score");
-const timeEl = document.getElementById("time");
-const accEl = document.getElementById("accuracy");
+const accuracyEl = document.getElementById("accuracy");
+const timerEl = document.getElementById("timer");
 
-const rScore = document.getElementById("rScore");
-const rHits = document.getElementById("rHits");
-const rShots = document.getElementById("rShots");
-const rAcc = document.getElementById("rAcc");
+const finalScore = document.getElementById("finalScore");
+const finalHits = document.getElementById("finalHits");
+const finalShots = document.getElementById("finalShots");
+const finalAccuracy = document.getElementById("finalAccuracy");
 
-// ================= BUTTONS =================
-document.getElementById("gridBtn").onclick = () => start("grid");
-document.getElementById("trackBtn").onclick = () => start("tracking");
-document.getElementById("arenaBtn").onclick = () => start("arena3d");
-document.getElementById("backBtn").onclick = backToMenu;
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-// ================= TIMER =================
-setInterval(() => {
-  if (!running || paused) return;
-  timeLeft--;
-  if (timeLeft <= 0) endGame();
-}, 1000);
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-// ================= 2D ENGINE =================
-let targets = [];
-let mouseX = 0;
-let mouseY = 0;
+// ================= START =================
+function startGame(selectedMode) {
+  mode = selectedMode;
+  score = 0;
+  hits = 0;
+  shots = 0;
+  timeLeft = 30;
+  running = true;
 
-function resize() {
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
+  menu.style.display = "none";
+  results.style.display = "none";
+  hud.style.display = "flex";
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    if (timeLeft <= 0) endGame();
+    updateHUD();
+  }, 1000);
+
+  if (mode === "grid") startGrid();
+  if (mode === "tracking") startTracking();
+  if (mode === "arena") startArena();
 }
-resize();
-addEventListener("resize", resize);
 
-document.addEventListener("mousemove", e => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
+// ================= END =================
+function endGame() {
+  running = false;
+  clearInterval(timerInterval);
 
-  if (mode === "arena3d" && running && !paused) {
-    yaw.rotation.y -= e.movementX * 0.002;
-    pitch.rotation.x -= e.movementY * 0.002;
+  hud.style.display = "none";
+  results.style.display = "flex";
 
-    // Clamp vertical look
-    pitch.rotation.x = Math.max(
-      -Math.PI / 2,
-      Math.min(Math.PI / 2, pitch.rotation.x)
-    );
+  finalScore.textContent = "Score: " + Math.floor(score);
+  finalHits.textContent = "Hits: " + hits;
+  finalShots.textContent = "Shots: " + shots;
+  finalAccuracy.textContent =
+    "Accuracy: " + (shots ? Math.round((hits / shots) * 100) : 0) + "%";
+
+  if (renderer) {
+    renderer.domElement.remove();
   }
-});
-
-canvas.addEventListener("click", () => {
-  if (!running || paused || mode !== "grid") return;
-
-  shots++;
-  targets.forEach((t, i) => {
-    if (Math.hypot(mouseX - t.x, mouseY - t.y) <= t.r) {
-      score++;
-      hits++;
-      targets[i] = newTarget();
-    }
-  });
-});
-
-function spawnGrid() {
-  return Array.from({ length: 6 }, () => newTarget());
 }
 
-function spawnTracking() {
-  return [{ x: innerWidth/2, y: innerHeight/2, r: 30 }];
+function backToMenu() {
+  results.style.display = "none";
+  menu.style.display = "flex";
+}
+
+// ================= HUD =================
+function updateHUD() {
+  scoreEl.textContent = "Score: " + Math.floor(score);
+  accuracyEl.textContent =
+    "Accuracy: " + (shots ? Math.round((hits / shots) * 100) : 0) + "%";
+  timerEl.textContent = "⏱ " + timeLeft;
+}
+
+// ================= GRIDSHOT =================
+function startGrid() {
+  canvas.style.display = "block";
+  let targets = Array.from({ length: 6 }, newTarget);
+
+  canvas.onclick = e => {
+    shots++;
+    targets.forEach((t, i) => {
+      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) < t.r) {
+        score++;
+        hits++;
+        targets[i] = newTarget();
+      }
+    });
+    updateHUD();
+  };
+
+  function loop() {
+    if (!running || mode !== "grid") return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    targets.forEach(t => {
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+      ctx.fillStyle = "red";
+      ctx.fill();
+    });
+    requestAnimationFrame(loop);
+  }
+  loop();
 }
 
 function newTarget() {
   return {
-    x: Math.random() * (canvas.width - 100) + 50,
-    y: Math.random() * (canvas.height - 100) + 50,
-    r: 22
+    x: Math.random() * window.innerWidth,
+    y: Math.random() * window.innerHeight,
+    r: 20
   };
 }
 
-// ================= 3D ENGINE =================
-let scene, camera, renderer;
-let arenaTarget;
-let yaw, pitch;
+// ================= TRACKING =================
+function startTracking() {
+  canvas.style.display = "block";
+  let angle = 0;
+  let target = { x: 0, y: 0, r: 25 };
 
-function initArena() {
+  function loop() {
+    if (!running || mode !== "tracking") return;
 
-  const container = document.createElement("div");
-  container.id = "threeContainer";
-  document.body.appendChild(container);
+    angle += 0.03;
+    target.x = window.innerWidth / 2 + Math.cos(angle) * 200;
+    target.y = window.innerHeight / 2 + Math.sin(angle) * 200;
+
+    shots++;
+    if (
+      Math.hypot(mouseX - target.x, mouseY - target.y) < target.r
+    ) {
+      score++;
+      hits++;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+    ctx.arc(target.x, target.y, target.r, 0, Math.PI * 2);
+    ctx.fillStyle = "red";
+    ctx.fill();
+
+    updateHUD();
+    requestAnimationFrame(loop);
+  }
+
+  let mouseX = 0;
+  let mouseY = 0;
+  document.onmousemove = e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  };
+
+  loop();
+}
+
+// ================= 3D ARENA =================
+let scene, camera, renderer, sphere;
+let yaw = 0;
+let pitch = 0;
+
+function startArena() {
+  canvas.style.display = "none";
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
 
-  camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+  camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+  );
 
-  // FPS Camera setup (NO ROLL)
-  yaw = new THREE.Object3D();
-  pitch = new THREE.Object3D();
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
 
-  yaw.add(pitch);
-  pitch.add(camera);
-
-  scene.add(yaw);
-
-  yaw.position.set(0, 2, 8);
-
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(innerWidth, innerHeight);
-  container.appendChild(renderer.domElement);
+  camera.position.set(0, 2, 8);
 
   const light = new THREE.DirectionalLight(0xffffff, 1);
   light.position.set(10, 20, 10);
@@ -138,144 +198,56 @@ function initArena() {
   ground.rotation.x = -Math.PI / 2;
   scene.add(ground);
 
-  // Bergen
-  for (let i = 0; i < 30; i++) {
-    const mountain = new THREE.Mesh(
-      new THREE.ConeGeometry(5 + Math.random()*5, 10 + Math.random()*10, 6),
-      new THREE.MeshStandardMaterial({ color: 0x556b2f })
-    );
-    mountain.position.set(
-      (Math.random()-0.5)*150,
-      5,
-      (Math.random()-0.5)*150
-    );
-    scene.add(mountain);
-  }
-
-  // 🔴 RONDE BOL (geen blok meer)
-  arenaTarget = new THREE.Mesh(
+  // 🔴 RONDE BOL
+  sphere = new THREE.Mesh(
     new THREE.SphereGeometry(1, 32, 32),
     new THREE.MeshStandardMaterial({ color: 0xff0000 })
   );
-  scene.add(arenaTarget);
+  scene.add(sphere);
 
-  animateArena();
-}
+  // Mouse look zonder roll
+  document.body.requestPointerLock();
 
-function animateArena() {
-  if (!running || paused || mode !== "arena3d") return;
+  document.onmousemove = e => {
+    if (!running || mode !== "arena") return;
 
-  requestAnimationFrame(animateArena);
+    yaw -= e.movementX * 0.002;
+    pitch -= e.movementY * 0.002;
 
-  angle += 0.02;
+    pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
 
-  // Rondje rondom speler
-  arenaTarget.position.x = Math.cos(angle) * 8;
-  arenaTarget.position.z = Math.sin(angle) * 8;
-  arenaTarget.position.y = 2 + Math.abs(Math.sin(angle*3)) * 3;
+    camera.rotation.order = "YXZ";
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
+  };
 
-  // Projecteer naar schermruimte
-  const vector = arenaTarget.position.clone();
-  vector.project(camera);
+  let angle = 0;
 
-  shots++;
+  function animate() {
+    if (!running || mode !== "arena") return;
 
-  // Als bol in midden van scherm zit → score omhoog
-  const tolerance = 0.06;
+    angle += 0.02;
 
-  if (Math.abs(vector.x) < tolerance &&
-      Math.abs(vector.y) < tolerance &&
-      vector.z < 1) {
+    sphere.position.x = Math.cos(angle) * 6;
+    sphere.position.z = Math.sin(angle) * 6;
+    sphere.position.y = 2 + Math.abs(Math.sin(angle * 3)) * 3;
 
-    score += 1;
-    hits++;
-  }
+    // Raycast vanuit midden scherm
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
 
-  scoreEl.textContent = `Score: ${Math.floor(score)}`;
-  accEl.textContent = `Accuracy: ${shots ? Math.round(hits/shots*100) : 0}%`;
-  timeEl.textContent = `⏱ ${timeLeft}`;
+    const intersects = raycaster.intersectObject(sphere);
 
-  renderer.render(scene, camera);
-}
-
-// ================= START =================
-function start(m) {
-  mode = m;
-  running = true;
-  paused = false;
-  score = 0;
-  hits = 0;
-  shots = 0;
-  timeLeft = 30;
-  angle = 0;
-
-  menu.style.display = "none";
-  results.style.display = "none";
-  hud.style.display = "flex";
-
-  canvas.style.display = (mode === "arena3d") ? "none" : "block";
-
-  if (mode === "grid") targets = spawnGrid();
-  if (mode === "tracking") targets = spawnTracking();
-  if (mode === "arena3d") initArena();
-}
-
-// ================= END =================
-function endGame() {
-  running = false;
-
-  if (mode === "arena3d") {
-    document.getElementById("threeContainer").remove();
-  }
-
-  hud.style.display = "none";
-  results.style.display = "flex";
-
-  const acc = shots ? Math.round((hits/shots)*100) : 0;
-
-  rScore.textContent = `Score: ${Math.floor(score)}`;
-  rHits.textContent = `Hits: ${hits}`;
-  rShots.textContent = `Shots: ${shots}`;
-  rAcc.textContent = `Accuracy: ${acc}%`;
-}
-
-// ================= 2D LOOP =================
-function loop() {
-  if (running && !paused && mode !== "arena3d") {
-
-    if (mode === "tracking") {
-      angle += 0.03;
-      const t = targets[0];
-      t.x = innerWidth/2 + Math.cos(angle)*220;
-      t.y = innerHeight/2 + Math.sin(angle)*220;
-
-      shots++;
-      if (Math.hypot(mouseX - t.x, mouseY - t.y) <= t.r) {
-        score++;
-        hits++;
-      }
+    shots++;
+    if (intersects.length > 0) {
+      score++;
+      hits++;
     }
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    targets.forEach(t => {
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, t.r, 0, Math.PI*2);
-      ctx.fillStyle = "red";
-      ctx.fill();
-    });
-
-    scoreEl.textContent = `Score: ${score}`;
-    accEl.textContent = `Accuracy: ${shots ? Math.round(hits/shots*100) : 0}%`;
-    timeEl.textContent = `⏱ ${timeLeft}`;
+    updateHUD();
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
   }
 
-  requestAnimationFrame(loop);
-}
-loop();
-
-function backToMenu() {
-  running = false;
-  results.style.display = "none";
-  menu.style.display = "flex";
+  animate();
 }
