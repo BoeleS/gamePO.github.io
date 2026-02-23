@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8">
-  <title>Aim Trainer</title>
+  <title>Aim Trainer Pro</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body tabindex="0">
@@ -11,6 +11,7 @@
   <h1>AIM TRAINER</h1>
   <button id="gridBtn">GRIDSHOT</button>
   <button id="trackBtn">TRACKING</button>
+  <button id="arenaBtn">3D ARENA</button>
 </div>
 
 <div id="hud" class="overlay hud" style="display:none;">
@@ -29,6 +30,10 @@
 </div>
 
 <canvas id="game"></canvas>
+
+<!-- THREE JS -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/PointerLockControls.js"></script>
 
 <script src="game.js"></script>
 </body>
