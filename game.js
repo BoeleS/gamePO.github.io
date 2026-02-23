@@ -55,15 +55,14 @@ document.addEventListener("mousemove", e => {
   mouseX = e.clientX;
   mouseY = e.clientY;
 
-  // First person look for 3D
-  if (mode === "arena3d") {
-    camera.rotation.y -= e.movementX * 0.002;
-    camera.rotation.x -= e.movementY * 0.002;
+  if (mode === "arena3d" && running && !paused) {
+    yaw.rotation.y -= e.movementX * 0.002;
+    pitch.rotation.x -= e.movementY * 0.002;
 
-    // Clamp vertical rotation
-    camera.rotation.x = Math.max(
+    // Clamp vertical look
+    pitch.rotation.x = Math.max(
       -Math.PI / 2,
-      Math.min(Math.PI / 2, camera.rotation.x)
+      Math.min(Math.PI / 2, pitch.rotation.x)
     );
   }
 });
@@ -98,7 +97,9 @@ function newTarget() {
 }
 
 // ================= 3D ENGINE =================
-let scene, camera, renderer, arenaTarget;
+let scene, camera, renderer;
+let arenaTarget;
+let yaw, pitch;
 
 function initArena() {
 
@@ -109,13 +110,18 @@ function initArena() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
 
-  camera = new THREE.PerspectiveCamera(
-    75,
-    innerWidth / innerHeight,
-    0.1,
-    1000
-  );
-  camera.position.set(0, 2, 8);
+  camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+
+  // FPS Camera setup (NO ROLL)
+  yaw = new THREE.Object3D();
+  pitch = new THREE.Object3D();
+
+  yaw.add(pitch);
+  pitch.add(camera);
+
+  scene.add(yaw);
+
+  yaw.position.set(0, 2, 8);
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(innerWidth, innerHeight);
@@ -146,9 +152,9 @@ function initArena() {
     scene.add(mountain);
   }
 
-  // Springend blok
+  // 🔴 RONDE BOL (geen blok meer)
   arenaTarget = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 2, 1),
+    new THREE.SphereGeometry(1, 32, 32),
     new THREE.MeshStandardMaterial({ color: 0xff0000 })
   );
   scene.add(arenaTarget);
@@ -163,27 +169,25 @@ function animateArena() {
 
   angle += 0.02;
 
-  arenaTarget.position.x = Math.cos(angle) * 6;
-  arenaTarget.position.z = Math.sin(angle) * 6;
-  arenaTarget.position.y = 1 + Math.abs(Math.sin(angle*3)) * 2;
+  // Rondje rondom speler
+  arenaTarget.position.x = Math.cos(angle) * 8;
+  arenaTarget.position.z = Math.sin(angle) * 8;
+  arenaTarget.position.y = 2 + Math.abs(Math.sin(angle*3)) * 3;
 
-  // ================= NIEUWE HIT DETECTIE =================
-  // Projecteer 3D positie naar schermcoördinaten
+  // Projecteer naar schermruimte
   const vector = arenaTarget.position.clone();
   vector.project(camera);
 
-  // vector.x en vector.y zijn nu tussen -1 en 1
-  // 0,0 is midden van scherm
-
   shots++;
 
-  const centerTolerance = 0.05; // hoe precies je moet mikken
+  // Als bol in midden van scherm zit → score omhoog
+  const tolerance = 0.06;
 
-  if (
-    Math.abs(vector.x) < centerTolerance &&
-    Math.abs(vector.y) < centerTolerance
-  ) {
-    score += 1;   // altijd score omhoog
+  if (Math.abs(vector.x) < tolerance &&
+      Math.abs(vector.y) < tolerance &&
+      vector.z < 1) {
+
+    score += 1;
     hits++;
   }
 
