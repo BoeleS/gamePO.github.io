@@ -1,253 +1,208 @@
-// ================= GLOBAL =================
-let mode = "";
-let score = 0;
-let hits = 0;
-let shots = 0;
-let timeLeft = 30;
-let running = false;
-let timerInterval;
+// ===== CANVAS =====
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-// UI
+function resize() {
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+}
+resize();
+addEventListener("resize", resize);
+
+// ===== UI =====
 const menu = document.getElementById("menu");
 const hud = document.getElementById("hud");
 const results = document.getElementById("results");
 
 const scoreEl = document.getElementById("score");
-const accuracyEl = document.getElementById("accuracy");
-const timerEl = document.getElementById("timer");
+const timeEl = document.getElementById("time");
+const accEl = document.getElementById("accuracy");
 
-const finalScore = document.getElementById("finalScore");
-const finalHits = document.getElementById("finalHits");
-const finalShots = document.getElementById("finalShots");
-const finalAccuracy = document.getElementById("finalAccuracy");
+// ===== PAUSE MENU =====
+const pauseMenu = document.createElement("div");
+pauseMenu.className = "overlay";
+pauseMenu.style.display = "none";
+pauseMenu.innerHTML = `
+  <h1>PAUSED</h1>
+  <button id="resume">RESUME</button>
+  <button id="quit">BACK TO MENU</button>
+`;
+document.body.appendChild(pauseMenu);
 
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+// ===== STATE =====
+let mode = "";
+let running = false;
+let paused = false;
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+let score = 0;
+let hits = 0;
+let shots = 0;
+let timeLeft = 30;
 
-// ================= START =================
-function startGame(selectedMode) {
-  mode = selectedMode;
+let targets = [];
+let angle = 0;
+
+// ===== MOUSE =====
+let mouseX = 0, mouseY = 0;
+document.addEventListener("mousemove", e => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+});
+
+// ===== BUTTONS =====
+document.getElementById("gridBtn").onclick = () => start("grid");
+document.getElementById("trackBtn").onclick = () => start("tracking");
+document.getElementById("backBtn").onclick = backToMenu;
+document.getElementById("resume").onclick = resume;
+document.getElementById("quit").onclick = backToMenu;
+
+// ===== ESC =====
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && running) {
+    paused ? resume() : pause();
+  }
+});
+
+// ===== START =====
+function start(m) {
+  mode = m;
+  running = true;
+  paused = false;
+
   score = 0;
   hits = 0;
   shots = 0;
   timeLeft = 30;
-  running = true;
+  angle = 0;
 
   menu.style.display = "none";
   results.style.display = "none";
+  pauseMenu.style.display = "none";
   hud.style.display = "flex";
 
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    if (timeLeft <= 0) endGame();
-    updateHUD();
-  }, 1000);
-
-  if (mode === "grid") startGrid();
-  if (mode === "tracking") startTracking();
-  if (mode === "arena") startArena();
+  targets = mode === "grid" ? spawnGrid() : spawnTracking();
 }
 
-// ================= END =================
-function endGame() {
-  running = false;
-  clearInterval(timerInterval);
+// ===== PAUSE =====
+function pause() {
+  paused = true;
+  pauseMenu.style.display = "flex";
+}
 
-  hud.style.display = "none";
-  results.style.display = "flex";
-
-  finalScore.textContent = "Score: " + Math.floor(score);
-  finalHits.textContent = "Hits: " + hits;
-  finalShots.textContent = "Shots: " + shots;
-  finalAccuracy.textContent =
-    "Accuracy: " + (shots ? Math.round((hits / shots) * 100) : 0) + "%";
-
-  if (renderer) {
-    renderer.domElement.remove();
-  }
+function resume() {
+  paused = false;
+  pauseMenu.style.display = "none";
 }
 
 function backToMenu() {
-  results.style.display = "none";
+  running = false;
+  paused = false;
   menu.style.display = "flex";
+  hud.style.display = "none";
+  results.style.display = "none";
+  pauseMenu.style.display = "none";
 }
 
-// ================= HUD =================
-function updateHUD() {
-  scoreEl.textContent = "Score: " + Math.floor(score);
-  accuracyEl.textContent =
-    "Accuracy: " + (shots ? Math.round((hits / shots) * 100) : 0) + "%";
-  timerEl.textContent = "⏱ " + timeLeft;
+// ===== TARGETS =====
+function spawnGrid() {
+  return Array.from({ length: 6 }, () => newTarget());
 }
 
-// ================= GRIDSHOT =================
-function startGrid() {
-  canvas.style.display = "block";
-  let targets = Array.from({ length: 6 }, newTarget);
-
-  canvas.onclick = e => {
-    shots++;
-    targets.forEach((t, i) => {
-      if (Math.hypot(e.clientX - t.x, e.clientY - t.y) < t.r) {
-        score++;
-        hits++;
-        targets[i] = newTarget();
-      }
-    });
-    updateHUD();
-  };
-
-  function loop() {
-    if (!running || mode !== "grid") return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    targets.forEach(t => {
-      ctx.beginPath();
-      ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-      ctx.fillStyle = "red";
-      ctx.fill();
-    });
-    requestAnimationFrame(loop);
-  }
-  loop();
+function spawnTracking() {
+  return [{ x: innerWidth / 2, y: innerHeight / 2, r: 30 }];
 }
 
 function newTarget() {
   return {
-    x: Math.random() * window.innerWidth,
-    y: Math.random() * window.innerHeight,
-    r: 20
+    x: Math.random() * (canvas.width - 100) + 50,
+    y: Math.random() * (canvas.height - 100) + 50,
+    r: 22
   };
 }
 
-// ================= TRACKING =================
-function startTracking() {
-  canvas.style.display = "block";
-  let angle = 0;
-  let target = { x: 0, y: 0, r: 25 };
+// ===== GRIDSHOT CLICK (MISS COUNTS) =====
+canvas.addEventListener("click", () => {
+  if (!running || paused || mode !== "grid") return;
 
-  function loop() {
-    if (!running || mode !== "tracking") return;
+  shots++; // ELKE KLIK = SCHOT
+  let hitSomething = false;
 
+  targets.forEach((t, i) => {
+    if (Math.hypot(mouseX - t.x, mouseY - t.y) <= t.r) {
+      score++;
+      hits++;
+      targets[i] = newTarget();
+      hitSomething = true;
+    }
+  });
+
+  // miss = accuracy gaat automatisch omlaag
+});
+
+// ===== TIMER =====
+setInterval(() => {
+  if (!running || paused) return;
+  timeLeft--;
+  if (timeLeft <= 0) endGame();
+}, 1000);
+
+// ===== END =====
+function endGame() {
+  running = false;
+  hud.style.display = "none";
+  results.style.display = "flex";
+
+  const acc = shots ? Math.round((hits / shots) * 100) : 0;
+  rScore.textContent = `Score: ${score}`;
+  rHits.textContent = `Hits: ${hits}`;
+  rShots.textContent = `Shots: ${shots}`;
+  rAcc.textContent = `Accuracy: ${acc}%`;
+}
+
+// ===== LOOP =====
+function update() {
+  if (!running || paused) return;
+
+  if (mode === "tracking") {
     angle += 0.03;
-    target.x = window.innerWidth / 2 + Math.cos(angle) * 200;
-    target.y = window.innerHeight / 2 + Math.sin(angle) * 200;
+    const t = targets[0];
+    t.x = innerWidth / 2 + Math.cos(angle) * 220;
+    t.y = innerHeight / 2 + Math.sin(angle) * 220;
 
     shots++;
-    if (
-      Math.hypot(mouseX - target.x, mouseY - target.y) < target.r
-    ) {
+    if (Math.hypot(mouseX - t.x, mouseY - t.y) <= t.r) {
       score++;
       hits++;
     }
+  }
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  timeEl.textContent = `⏱ ${timeLeft}`;
+  scoreEl.textContent = `Score: ${score}`;
+  accEl.textContent = `Accuracy: ${shots ? Math.round(hits / shots * 100) : 0}%`;
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  targets.forEach(t => {
     ctx.beginPath();
-    ctx.arc(target.x, target.y, target.r, 0, Math.PI * 2);
+    ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
     ctx.fillStyle = "red";
     ctx.fill();
+  });
 
-    updateHUD();
-    requestAnimationFrame(loop);
-  }
-
-  let mouseX = 0;
-  let mouseY = 0;
-  document.onmousemove = e => {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-  };
-
-  loop();
+  ctx.strokeStyle = "white";
+  ctx.beginPath();
+  ctx.moveTo(mouseX - 8, mouseY);
+  ctx.lineTo(mouseX + 8, mouseY);
+  ctx.moveTo(mouseX, mouseY - 8);
+  ctx.lineTo(mouseX, mouseY + 8);
+  ctx.stroke();
 }
 
-// ================= 3D ARENA =================
-let scene, camera, renderer, sphere;
-let yaw = 0;
-let pitch = 0;
-
-function startArena() {
-  canvas.style.display = "none";
-
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x87ceeb);
-
-  camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
-
-  renderer = new THREE.WebGLRenderer();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  camera.position.set(0, 2, 8);
-
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(10, 20, 10);
-  scene.add(light);
-
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(200, 200),
-    new THREE.MeshStandardMaterial({ color: 0x228822 })
-  );
-  ground.rotation.x = -Math.PI / 2;
-  scene.add(ground);
-
-  // 🔴 RONDE BOL
-  sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 32, 32),
-    new THREE.MeshStandardMaterial({ color: 0xff0000 })
-  );
-  scene.add(sphere);
-
-  // Mouse look zonder roll
-  document.body.requestPointerLock();
-
-  document.onmousemove = e => {
-    if (!running || mode !== "arena") return;
-
-    yaw -= e.movementX * 0.002;
-    pitch -= e.movementY * 0.002;
-
-    pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
-
-    camera.rotation.order = "YXZ";
-    camera.rotation.y = yaw;
-    camera.rotation.x = pitch;
-  };
-
-  let angle = 0;
-
-  function animate() {
-    if (!running || mode !== "arena") return;
-
-    angle += 0.02;
-
-    sphere.position.x = Math.cos(angle) * 6;
-    sphere.position.z = Math.sin(angle) * 6;
-    sphere.position.y = 2 + Math.abs(Math.sin(angle * 3)) * 3;
-
-    // Raycast vanuit midden scherm
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-
-    const intersects = raycaster.intersectObject(sphere);
-
-    shots++;
-    if (intersects.length > 0) {
-      score++;
-      hits++;
-    }
-
-    updateHUD();
-    renderer.render(scene, camera);
-    requestAnimationFrame(animate);
-  }
-
-  animate();
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
 }
+loop();
