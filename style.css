@@ -63,14 +63,16 @@ button:hover {
 /* HUD */
 .hud {
   flex-direction: row;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: flex-start;
   background: none;
   backdrop-filter: none;
   pointer-events: none;
+  padding: 10px 40px;
 }
 
 .hud span {
-  margin: 15px 25px;
-  font-size: 18px;
+  margin: 10px 25px;
+  font-size: 20px;
+  font-weight: 600;
 }
