@@ -1,30 +1,30 @@
 // ===== BASIC 3D SETUP =====
 const canvas = document.getElementById("game");
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+scene.background = new THREE.Color(0x0066ff); // blauwe ruimte
 
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-camera.position.set(0,2,0);
+camera.position.set(0,2,15);
 
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 
 addEventListener("resize", ()=>{
-  renderer.setSize(innerWidth, innerHeight);
-  camera.aspect = innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
+renderer.setSize(innerWidth, innerHeight);
+camera.aspect = innerWidth/innerHeight;
+camera.updateProjectionMatrix();
 });
 
 // ===== LIGHT =====
-scene.add(new THREE.AmbientLight(0xffffff,0.6));
+scene.add(new THREE.AmbientLight(0xffffff,0.7));
 const light = new THREE.DirectionalLight(0xffffff,1);
 light.position.set(5,10,7);
 scene.add(light);
 
 // ===== FLOOR =====
 const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(200,200),
-  new THREE.MeshStandardMaterial({color:0x111111})
+new THREE.PlaneGeometry(200,200),
+new THREE.MeshStandardMaterial({color:0x0044aa})
 );
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
@@ -41,32 +41,10 @@ const rHits=document.getElementById("rHits");
 const rShots=document.getElementById("rShots");
 const rAcc=document.getElementById("rAcc");
 
-// ===== STATE =====
 let mode="", running=false;
 let score=0,hits=0,shots=0,timeLeft=30;
 let targets=[];
-let velocity=null;
-
-// ===== POINTER LOCK (FPS LOOK) =====
-canvas.addEventListener("click", ()=>{
-  if(running) canvas.requestPointerLock();
-});
-
-document.addEventListener("mousemove", e=>{
-  if(document.pointerLockElement===canvas){
-    camera.rotation.y -= e.movementX * 0.002;
-    camera.rotation.x -= e.movementY * 0.002;
-    camera.rotation.x=Math.max(-Math.PI/2,Math.min(Math.PI/2,camera.rotation.x));
-  }
-});
-
-// ESC menu fix
-document.addEventListener("keydown", e=>{
-  if(e.key==="Escape"){
-    document.exitPointerLock();
-    backToMenu();
-  }
-});
+let angle=0;
 
 // ===== BUTTONS =====
 gridBtn.onclick=()=>start("grid");
@@ -74,16 +52,24 @@ trackBtn.onclick=()=>start("tracking");
 bounceBtn.onclick=()=>start("bounce");
 backBtn.onclick=backToMenu;
 
+document.addEventListener("keydown", e=>{
+if(e.key==="Escape") backToMenu();
+});
+
 // ===== START =====
 function start(m){
 mode=m;
 running=true;
 score=0;hits=0;shots=0;timeLeft=30;
+angle=0;
 clearTargets();
 
 menu.style.display="none";
 results.style.display="none";
 hud.style.display="flex";
+
+camera.rotation.set(0,0,0);
+camera.position.set(0,2,15);
 
 if(mode==="grid") spawnGrid();
 if(mode==="tracking") spawnTracking();
@@ -96,7 +82,7 @@ targets.forEach(t=>scene.remove(t));
 targets=[];
 }
 
-// ===== SPAWNS =====
+// ===== BALL =====
 function createBall(){
 return new THREE.Mesh(
 new THREE.SphereGeometry(1,32,32),
@@ -104,18 +90,18 @@ new THREE.MeshStandardMaterial({color:0xff0000})
 );
 }
 
-function randomPosition(radius=20){
+function randomPosition(radius=25){
 const theta=Math.random()*Math.PI*2;
-const phi=Math.random()*Math.PI;
 return new THREE.Vector3(
-radius*Math.sin(phi)*Math.cos(theta),
+Math.cos(theta)*radius,
 Math.random()*8+1,
-radius*Math.sin(phi)*Math.sin(theta)
+Math.sin(theta)*radius
 );
 }
 
+// ===== GRIDSHOT =====
 function spawnGrid(){
-for(let i=0;i<15;i++){
+for(let i=0;i<20;i++){
 const ball=createBall();
 ball.position.copy(randomPosition());
 scene.add(ball);
@@ -123,16 +109,18 @@ targets.push(ball);
 }
 }
 
+// ===== TRACKING =====
 function spawnTracking(){
 const ball=createBall();
-ball.position.copy(randomPosition());
+ball.position.set(25,3,0);
 scene.add(ball);
 targets=[ball];
 }
 
+// ===== BOUNCE =====
 function spawnBounce(){
 const ball=createBall();
-ball.position.copy(randomPosition());
+ball.position.copy(randomPosition(20));
 ball.userData.vel=new THREE.Vector3(
 (Math.random()-0.5)*0.4,
 (Math.random()-0.5)*0.4,
@@ -143,12 +131,17 @@ targets=[ball];
 }
 
 // ===== SHOOT =====
-addEventListener("mousedown", ()=>{
+addEventListener("mousedown", e=>{
 if(!running)return;
 shots++;
 
+const mouse=new THREE.Vector2(
+(e.clientX/innerWidth)*2-1,
+-(e.clientY/innerHeight)*2+1
+);
+
 const ray=new THREE.Raycaster();
-ray.setFromCamera(new THREE.Vector2(0,0),camera);
+ray.setFromCamera(mouse,camera);
 const hit=ray.intersectObjects(targets);
 
 if(hit.length>0){
@@ -172,10 +165,8 @@ if(timeLeft<=0) endGame();
 // ===== END =====
 function endGame(){
 running=false;
-document.exitPointerLock();
 hud.style.display="none";
 results.style.display="flex";
-
 const acc=shots?Math.round(hits/shots*100):0;
 rScore.textContent="Score: "+score;
 rHits.textContent="Hits: "+hits;
@@ -188,15 +179,17 @@ function update(){
 if(!running)return;
 
 if(mode==="tracking" && targets[0]){
-targets[0].position.copy(randomPosition(15));
+angle+=0.02;
+targets[0].position.x=Math.cos(angle)*25;
+targets[0].position.z=Math.sin(angle)*25;
 }
 
 if(mode==="bounce" && targets[0]){
 const b=targets[0];
 b.position.add(b.userData.vel);
-if(b.position.x>30||b.position.x<-30)b.userData.vel.x*=-1;
+if(b.position.x>40||b.position.x<-40)b.userData.vel.x*=-1;
 if(b.position.y>15||b.position.y<1)b.userData.vel.y*=-1;
-if(b.position.z>30||b.position.z<-30)b.userData.vel.z*=-1;
+if(b.position.z>40||b.position.z<-40)b.userData.vel.z*=-1;
 }
 
 scoreEl.textContent="Score: "+score;
