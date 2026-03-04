@@ -1,17 +1,16 @@
-// ===== BASIC SETUP =====
+// ===== BASIC 3D SETUP =====
 const canvas = document.getElementById("game");
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x101218);
 
-// camera
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 2000);
-camera.position.set(0, 2, 16);
+camera.position.set(0, 2, 18);
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
 
-addEventListener("resize", () => {
+window.addEventListener("resize", () => {
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
   camera.aspect = innerWidth / innerHeight;
@@ -24,7 +23,7 @@ const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
 dirLight.position.set(10, 20, 10);
 scene.add(dirLight);
 
-// ===== CHECKER TEXTURE =====
+// ===== ROOM =====
 function createCheckerTexture(size = 512, squares = 8) {
   const c = document.createElement("canvas");
   c.width = c.height = size;
@@ -41,62 +40,57 @@ function createCheckerTexture(size = 512, squares = 8) {
 }
 const checker = createCheckerTexture();
 
-// ===== ROOM =====
 const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(50, 50),
+  new THREE.PlaneGeometry(60, 60),
   new THREE.MeshStandardMaterial({ map: checker })
 );
 floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
 
 const platform = new THREE.Mesh(
-  new THREE.BoxGeometry(30, 1.2, 12),
+  new THREE.BoxGeometry(34, 1.2, 14),
   new THREE.MeshStandardMaterial({ color: 0x20232f })
 );
-platform.position.set(0, 0.6, -12);
+platform.position.set(0, 0.6, -14);
 scene.add(platform);
 
 const backWall = new THREE.Mesh(
-  new THREE.PlaneGeometry(50, 20),
+  new THREE.PlaneGeometry(60, 22),
   new THREE.MeshStandardMaterial({ color: 0x181b26 })
 );
-backWall.position.set(0, 10, -40);
+backWall.position.set(0, 11, -46);
 scene.add(backWall);
 
-// ===== FIRST PERSON WEAPON (stylized) =====
+// ===== FIRST PERSON WEAPON =====
 const weapon = new THREE.Group();
 
-// body
 const body = new THREE.Mesh(
-  new THREE.BoxGeometry(0.7, 0.45, 1.8),
+  new THREE.BoxGeometry(0.8, 0.45, 1.9),
   new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.4, roughness: 0.3 })
 );
-body.position.set(0.5, -0.45, -1.4);
+body.position.set(0.6, -0.45, -1.5);
 weapon.add(body);
 
-// barrel
 const barrel = new THREE.Mesh(
-  new THREE.CylinderGeometry(0.09, 0.09, 1.2, 16),
+  new THREE.CylinderGeometry(0.09, 0.09, 1.3, 16),
   new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.7, roughness: 0.2 })
 );
 barrel.rotation.x = Math.PI / 2;
-barrel.position.set(0.5, -0.4, -2.2);
+barrel.position.set(0.6, -0.4, -2.3);
 weapon.add(barrel);
 
-// grip
 const grip = new THREE.Mesh(
   new THREE.BoxGeometry(0.28, 0.55, 0.35),
   new THREE.MeshStandardMaterial({ color: 0x151515 })
 );
-grip.position.set(0.7, -0.8, -1.3);
+grip.position.set(0.8, -0.8, -1.3);
 weapon.add(grip);
 
-// side accent
 const accent = new THREE.Mesh(
-  new THREE.BoxGeometry(0.4, 0.12, 0.4),
+  new THREE.BoxGeometry(0.45, 0.12, 0.45),
   new THREE.MeshStandardMaterial({ color: 0x00bcd4, emissive: 0x007888, emissiveIntensity: 0.6 })
 );
-accent.position.set(0.4, -0.25, -1.0);
+accent.position.set(0.45, -0.25, -1.0);
 weapon.add(accent);
 
 camera.add(weapon);
@@ -126,8 +120,8 @@ let running = false;
 let mode = null; // "grid", "bounce", "ball"
 let score = 0, hits = 0, shots = 0, timeLeft = 60;
 let targets = [];
-let velocities = []; // voor bewegende modes
-let gridPositions = []; // vaste grid voor gridshot
+let velocities = [];
+let gridPositions = [];
 
 // ===== POINTER LOOK =====
 canvas.addEventListener("click", () => {
@@ -142,7 +136,7 @@ document.addEventListener("mousemove", e => {
   }
 });
 
-// ESC -> terug naar menu
+// ESC → terug naar menu
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     document.exitPointerLock();
@@ -172,30 +166,30 @@ function startMode(m) {
   results.style.display = "none";
   hud.style.display = "flex";
 
-  camera.position.set(0, 2, 16);
+  camera.position.set(0, 2, 18);
   camera.rotation.set(0, 0, 0);
 
   if (mode === "grid") {
-    modeNameEl.textContent = "GRIDSHOT (CUSTOM)";
+    modeNameEl.textContent = "GRIDSHOT (NEW)";
     setupGridPositions();
     spawnGridTargets();
   } else if (mode === "bounce") {
-    modeNameEl.textContent = "BOUNCE TRACKING";
+    modeNameEl.textContent = "BOUNCE TRACKING (NEW)";
     spawnBounceTargets();
   } else if (mode === "ball") {
-    modeNameEl.textContent = "BALL TRACKING";
+    modeNameEl.textContent = "BALL TRACKING (NEW)";
     spawnBallTarget();
   }
 }
 
-// ===== GRIDSHOT: vaste grid =====
+// ===== GRIDSHOT: NIEUWE GRID =====
 function setupGridPositions() {
   gridPositions = [];
-  const cols = 5;
+  const cols = 6;
   const rows = 3;
-  const spacingX = 3.2;
-  const spacingY = 2.4;
-  const baseZ = -28;
+  const spacingX = 3.0;
+  const spacingY = 2.6;
+  const baseZ = -32;
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -217,7 +211,11 @@ function spawnGridTargets() {
   for (let i = 0; i < 3; i++) {
     const ball = new THREE.Mesh(
       new THREE.SphereGeometry(0.9, 32, 32),
-      new THREE.MeshStandardMaterial({ color: 0xff4081, emissive: 0x7b1fa2, emissiveIntensity: 0.4 })
+      new THREE.MeshStandardMaterial({
+        color: 0xff4081,
+        emissive: 0x7b1fa2,
+        emissiveIntensity: 0.5
+      })
     );
     const p = getRandomGridPosition();
     ball.position.copy(p);
@@ -226,16 +224,16 @@ function spawnGridTargets() {
   }
 }
 
-// ===== BOUNCE TRACKING =====
+// ===== BOUNCE TRACKING: NIEUWE ARENA =====
 function randomWidePosition() {
   return {
-    x: (Math.random() * 30 - 15),
-    y: (Math.random() * 8 + 2),
-    z: -(Math.random() * 20 + 12)
+    x: (Math.random() * 32 - 16),
+    y: (Math.random() * 10 + 2),
+    z: -(Math.random() * 22 + 14)
   };
 }
 
-function randomVelocity(speed = 0.16) {
+function randomVelocity(speed = 0.18) {
   const angleXY = Math.random() * Math.PI * 2;
   const angleZ = Math.random() * Math.PI * 2;
   return new THREE.Vector3(
@@ -248,33 +246,41 @@ function randomVelocity(speed = 0.16) {
 function spawnBounceTargets() {
   clearTargets();
   velocities = [];
-  const count = 5;
+  const count = 7;
   for (let i = 0; i < count; i++) {
     const ball = new THREE.Mesh(
       new THREE.SphereGeometry(0.8, 32, 32),
-      new THREE.MeshStandardMaterial({ color: 0x00e5ff, emissive: 0x00838f, emissiveIntensity: 0.5 })
+      new THREE.MeshStandardMaterial({
+        color: 0x00e5ff,
+        emissive: 0x00838f,
+        emissiveIntensity: 0.6
+      })
     );
     const p = randomWidePosition();
     ball.position.set(p.x, p.y, p.z);
     scene.add(ball);
     targets.push(ball);
-    velocities.push(randomVelocity(0.18));
+    velocities.push(randomVelocity(0.2));
   }
 }
 
-// ===== BALL TRACKING =====
+// ===== BALL TRACKING: NIEUWE BEWEGENDE BAL =====
 function spawnBallTarget() {
   clearTargets();
   velocities = [];
   const ball = new THREE.Mesh(
     new THREE.SphereGeometry(1.1, 32, 32),
-    new THREE.MeshStandardMaterial({ color: 0x76ff03, emissive: 0x33691e, emissiveIntensity: 0.5 })
+    new THREE.MeshStandardMaterial({
+      color: 0x76ff03,
+      emissive: 0x33691e,
+      emissiveIntensity: 0.6
+    })
   );
   const p = randomWidePosition();
   ball.position.set(p.x, p.y, p.z);
   scene.add(ball);
   targets.push(ball);
-  velocities.push(randomVelocity(0.22));
+  velocities.push(randomVelocity(0.24));
 }
 
 // ===== CLEAR TARGETS =====
@@ -284,7 +290,7 @@ function clearTargets() {
 }
 
 // ===== SHOOT =====
-addEventListener("mousedown", () => {
+window.addEventListener("mousedown", () => {
   if (!running) return;
   shots++;
 
@@ -305,11 +311,11 @@ addEventListener("mousedown", () => {
       const index = targets.indexOf(hitObj);
       const p = randomWidePosition();
       hitObj.position.set(p.x, p.y, p.z);
-      if (index !== -1) velocities[index] = randomVelocity(0.2);
+      if (index !== -1) velocities[index] = randomVelocity(0.22);
     } else if (mode === "ball") {
       const p = randomWidePosition();
       hitObj.position.set(p.x, p.y, p.z);
-      velocities[0] = randomVelocity(0.25);
+      velocities[0] = randomVelocity(0.26);
     }
   }
 });
@@ -339,9 +345,9 @@ function endGame() {
 
   const acc = shots ? Math.round(hits / shots * 100) : 0;
   rMode.textContent = "Mode: " + (
-    mode === "grid" ? "Gridshot (Custom)" :
-    mode === "bounce" ? "Bounce Tracking" :
-    "Ball Tracking"
+    mode === "grid" ? "Gridshot (New)" :
+    mode === "bounce" ? "Bounce Tracking (New)" :
+    "Ball Tracking (New)"
   );
   rScore.textContent = "Score: " + score;
   rHits.textContent = "Hits: " + hits;
@@ -349,7 +355,7 @@ function endGame() {
   rAcc.textContent = "Accuracy: " + acc + "%";
 }
 
-// ===== UPDATE HUD =====
+// ===== HUD UPDATE =====
 function updateHUD() {
   if (!running) return;
   scoreEl.textContent = "PTS " + score;
@@ -358,7 +364,7 @@ function updateHUD() {
   accEl.textContent = acc + "%";
 }
 
-// ===== TARGET MOVEMENT (BOUNCE / BALL) =====
+// ===== TARGET MOVEMENT =====
 function updateTargetsMovement() {
   if (!running) return;
   if (mode !== "bounce" && mode !== "ball") return;
@@ -370,9 +376,9 @@ function updateTargetsMovement() {
 
     t.position.add(v);
 
-    const maxX = 20, minX = -20;
-    const maxY = 14, minY = 1.5;
-    const maxZ = -8, minZ = -45;
+    const maxX = 22, minX = -22;
+    const maxY = 16, minY = 1.5;
+    const maxZ = -8, minZ = -48;
 
     if (t.position.x > maxX || t.position.x < minX) v.x *= -1;
     if (t.position.y > maxY || t.position.y < minY) v.y *= -1;
@@ -393,7 +399,7 @@ crosshair.style.borderRadius = "50%";
 crosshair.style.zIndex = "5";
 document.body.appendChild(crosshair);
 
-// ===== LOOP =====
+// ===== MAIN LOOP =====
 function animate() {
   requestAnimationFrame(animate);
   updateHUD();
