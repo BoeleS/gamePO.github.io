@@ -23,17 +23,6 @@ const rHits = document.getElementById("rHits");
 const rShots = document.getElementById("rShots");
 const rAcc = document.getElementById("rAcc");
 
-// ===== PAUSE MENU =====
-const pauseMenu = document.createElement("div");
-pauseMenu.className = "overlay";
-pauseMenu.style.display = "none";
-pauseMenu.innerHTML = `
-  <h1>PAUSED</h1>
-  <button id="resume">RESUME</button>
-  <button id="quit">BACK TO MENU</button>
-`;
-document.body.appendChild(pauseMenu);
-
 // ===== STATE =====
 let mode = "";
 let running = false;
@@ -47,10 +36,8 @@ let timeLeft = 30;
 let targets = [];
 let angle = 0;
 
-// Bounce character
-let player = null;
-const gravity = 0.6;
-const bounceStrength = -15;
+let bouncePlayer = null;
+const gravity = 0.7;
 
 // ===== MOUSE =====
 let mouseX = 0, mouseY = 0;
@@ -64,15 +51,6 @@ document.getElementById("gridBtn").onclick = () => start("grid");
 document.getElementById("trackBtn").onclick = () => start("tracking");
 document.getElementById("bounceBtn").onclick = () => start("bounce");
 document.getElementById("backBtn").onclick = backToMenu;
-document.getElementById("resume").onclick = resume;
-document.getElementById("quit").onclick = backToMenu;
-
-// ===== ESC =====
-document.addEventListener("keydown", e => {
-  if (e.key === "Escape" && running) {
-    paused ? resume() : pause();
-  }
-});
 
 // ===== START =====
 function start(m) {
@@ -88,76 +66,59 @@ function start(m) {
 
   menu.style.display = "none";
   results.style.display = "none";
-  pauseMenu.style.display = "none";
   hud.style.display = "flex";
 
   if (mode === "grid") targets = spawnGrid();
   if (mode === "tracking") targets = spawnTracking();
   if (mode === "bounce") {
-    player = {
+    bouncePlayer = {
       x: canvas.width / 2,
-      y: canvas.height - 100,
+      y: canvas.height - 150,
       vx: 6,
-      vy: bounceStrength,
+      vy: -18,
       r: 25
     };
   }
 }
 
-// ===== PAUSE =====
-function pause() {
-  paused = true;
-  pauseMenu.style.display = "flex";
-}
-
-function resume() {
-  paused = false;
-  pauseMenu.style.display = "none";
-}
-
+// ===== BACK =====
 function backToMenu() {
   running = false;
-  paused = false;
   menu.style.display = "flex";
   hud.style.display = "none";
   results.style.display = "none";
-  pauseMenu.style.display = "none";
 }
 
 // ===== TARGETS =====
 function spawnGrid() {
-  return Array.from({ length: 6 }, () => newTarget());
+  return Array.from({ length: 6 }, () => ({
+    x: Math.random() * (canvas.width - 100) + 50,
+    y: Math.random() * (canvas.height - 100) + 50,
+    r: 22
+  }));
 }
 
 function spawnTracking() {
   return [{ x: innerWidth / 2, y: innerHeight / 2, r: 30 }];
 }
 
-function newTarget() {
-  return {
-    x: Math.random() * (canvas.width - 100) + 50,
-    y: Math.random() * (canvas.height - 100) + 50,
-    r: 22
-  };
-}
-
 // ===== CLICK GRID =====
 canvas.addEventListener("click", () => {
-  if (!running || paused || mode !== "grid") return;
+  if (!running || mode !== "grid") return;
 
   shots++;
   targets.forEach((t, i) => {
     if (Math.hypot(mouseX - t.x, mouseY - t.y) <= t.r) {
       score++;
       hits++;
-      targets[i] = newTarget();
+      targets[i] = spawnGrid()[0];
     }
   });
 });
 
 // ===== TIMER =====
 setInterval(() => {
-  if (!running || paused) return;
+  if (!running) return;
   timeLeft--;
   if (timeLeft <= 0) endGame();
 }, 1000);
@@ -177,7 +138,7 @@ function endGame() {
 
 // ===== UPDATE =====
 function update() {
-  if (!running || paused) return;
+  if (!running) return;
 
   if (mode === "tracking") {
     angle += 0.03;
@@ -193,23 +154,23 @@ function update() {
   }
 
   if (mode === "bounce") {
-    player.vy += gravity;
-    player.x += player.vx;
-    player.y += player.vy;
+    bouncePlayer.vy += gravity;
+    bouncePlayer.x += bouncePlayer.vx;
+    bouncePlayer.y += bouncePlayer.vy;
 
-    // Bounce vloer
-    if (player.y + player.r > canvas.height - 50) {
-      player.y = canvas.height - 50 - player.r;
-      player.vy = bounceStrength;
+    // vloer
+    if (bouncePlayer.y + bouncePlayer.r > canvas.height - 80) {
+      bouncePlayer.y = canvas.height - 80 - bouncePlayer.r;
+      bouncePlayer.vy = -18;
     }
 
-    // Bounce muren
-    if (player.x + player.r > canvas.width || player.x - player.r < 0) {
-      player.vx *= -1;
+    // muren
+    if (bouncePlayer.x + bouncePlayer.r > canvas.width || bouncePlayer.x - bouncePlayer.r < 0) {
+      bouncePlayer.vx *= -1;
     }
 
     shots++;
-    if (Math.hypot(mouseX - player.x, mouseY - player.y) <= player.r) {
+    if (Math.hypot(mouseX - bouncePlayer.x, mouseY - bouncePlayer.y) <= bouncePlayer.r) {
       score++;
       hits++;
     }
@@ -228,8 +189,8 @@ function drawHills() {
   ctx.fillStyle = "#111";
   ctx.beginPath();
   ctx.moveTo(0, canvas.height);
-  for (let i = 0; i <= canvas.width; i += 50) {
-    const height = Math.sin(i * 0.01) * 40;
+  for (let i = 0; i <= canvas.width; i += 40) {
+    const height = Math.sin(i * 0.01) * 50;
     ctx.lineTo(i, canvas.height - 100 + height);
   }
   ctx.lineTo(canvas.width, canvas.height);
@@ -252,12 +213,12 @@ function draw() {
 
   if (mode === "bounce") {
     ctx.beginPath();
-    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+    ctx.arc(bouncePlayer.x, bouncePlayer.y, bouncePlayer.r, 0, Math.PI * 2);
     ctx.fillStyle = "orange";
     ctx.fill();
   }
 
-  // Crosshair
+  // crosshair
   ctx.strokeStyle = "white";
   ctx.beginPath();
   ctx.moveTo(mouseX - 8, mouseY);
