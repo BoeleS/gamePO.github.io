@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <title>Aim Trainer</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>Aim Trainer 3D</title>
+<link rel="stylesheet" href="style.css">
+<style>
+body { margin:0; overflow:hidden; background:black; cursor:none; }
+canvas { display:block; }
+</style>
 </head>
-<body tabindex="0">
+<body>
 
 <div id="menu" class="overlay">
   <h1>AIM TRAINER</h1>
-  <button id="gridBtn">GRIDSHOT</button>
-  <button id="trackBtn">TRACKING</button>
-  <button id="bounceBtn">BOUNCE TRACKING</button>
+  <button id="gridBtn">GRIDSHOT 3D</button>
+  <button id="trackBtn">TRACKING 3D</button>
+  <button id="bounceBtn">BOUNCE 3D</button>
 </div>
 
 <div id="hud" class="overlay hud" style="display:none;">
@@ -31,6 +35,9 @@
 
 <canvas id="game"></canvas>
 
+<!-- THREE JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="game.js"></script>
+
 </body>
 </html>
