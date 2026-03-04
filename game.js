@@ -7,10 +7,12 @@ const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000
 camera.position.set(0,2,8);
 
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(window.devicePixelRatio);   // <<< FIX VOOR WAZIG BEELD
 renderer.setSize(innerWidth, innerHeight);
 
 addEventListener("resize", ()=>{
   renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio); // <<< FIX OOK HIER
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
 });
