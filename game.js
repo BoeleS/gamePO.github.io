@@ -1,23 +1,17 @@
-// ===== THREE SETUP =====
+// ===== BASIC 3D SETUP =====
 const canvas = document.getElementById("game");
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-camera.position.set(0, 5, 15);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(0,2,0);
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setSize(innerWidth, innerHeight);
 
-window.addEventListener("resize", () => {
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  camera.aspect = window.innerWidth / window.innerHeight;
+addEventListener("resize", ()=>{
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
 });
 
@@ -29,109 +23,159 @@ scene.add(light);
 
 // ===== FLOOR =====
 const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(100,100),
+  new THREE.PlaneGeometry(200,200),
   new THREE.MeshStandardMaterial({color:0x111111})
 );
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
 // ===== UI =====
-const menu = document.getElementById("menu");
-const hud = document.getElementById("hud");
-const results = document.getElementById("results");
-const scoreEl = document.getElementById("score");
-const timeEl = document.getElementById("time");
-const accEl = document.getElementById("accuracy");
-const rScore = document.getElementById("rScore");
-const rHits = document.getElementById("rHits");
-const rShots = document.getElementById("rShots");
-const rAcc = document.getElementById("rAcc");
+const menu=document.getElementById("menu");
+const hud=document.getElementById("hud");
+const results=document.getElementById("results");
+const scoreEl=document.getElementById("score");
+const timeEl=document.getElementById("time");
+const accEl=document.getElementById("accuracy");
+const rScore=document.getElementById("rScore");
+const rHits=document.getElementById("rHits");
+const rShots=document.getElementById("rShots");
+const rAcc=document.getElementById("rAcc");
 
 // ===== STATE =====
 let mode="", running=false;
 let score=0,hits=0,shots=0,timeLeft=30;
 let targets=[];
-let bounceBall=null;
-let angle=0;
+let velocity=null;
 
-document.getElementById("gridBtn").onclick=()=>start("grid");
-document.getElementById("trackBtn").onclick=()=>start("tracking");
-document.getElementById("bounceBtn").onclick=()=>start("bounce");
-document.getElementById("backBtn").onclick=backToMenu;
+// ===== POINTER LOCK (FPS LOOK) =====
+canvas.addEventListener("click", ()=>{
+  if(running) canvas.requestPointerLock();
+});
+
+document.addEventListener("mousemove", e=>{
+  if(document.pointerLockElement===canvas){
+    camera.rotation.y -= e.movementX * 0.002;
+    camera.rotation.x -= e.movementY * 0.002;
+    camera.rotation.x=Math.max(-Math.PI/2,Math.min(Math.PI/2,camera.rotation.x));
+  }
+});
+
+// ESC menu fix
+document.addEventListener("keydown", e=>{
+  if(e.key==="Escape"){
+    document.exitPointerLock();
+    backToMenu();
+  }
+});
+
+// ===== BUTTONS =====
+gridBtn.onclick=()=>start("grid");
+trackBtn.onclick=()=>start("tracking");
+bounceBtn.onclick=()=>start("bounce");
+backBtn.onclick=backToMenu;
 
 // ===== START =====
 function start(m){
-mode=m; running=true;
+mode=m;
+running=true;
 score=0;hits=0;shots=0;timeLeft=30;
-angle=0;
+clearTargets();
+
 menu.style.display="none";
 results.style.display="none";
 hud.style.display="flex";
-clearScene();
 
 if(mode==="grid") spawnGrid();
 if(mode==="tracking") spawnTracking();
 if(mode==="bounce") spawnBounce();
 }
 
-// ===== CLEAR OBJECTS =====
-function clearScene(){
+// ===== CLEAR =====
+function clearTargets(){
 targets.forEach(t=>scene.remove(t));
 targets=[];
-if(bounceBall){scene.remove(bounceBall);bounceBall=null;}
 }
 
-// ===== GRID =====
-function spawnGrid(){
-for(let i=0;i<6;i++){
-const ball=createBall(0xff0000,1);
-ball.position.set(
-(Math.random()-0.5)*15,
-Math.random()*6+1,
-(Math.random()-0.5)*15
+// ===== SPAWNS =====
+function createBall(){
+return new THREE.Mesh(
+new THREE.SphereGeometry(1,32,32),
+new THREE.MeshStandardMaterial({color:0xff0000})
 );
+}
+
+function randomPosition(radius=20){
+const theta=Math.random()*Math.PI*2;
+const phi=Math.random()*Math.PI;
+return new THREE.Vector3(
+radius*Math.sin(phi)*Math.cos(theta),
+Math.random()*8+1,
+radius*Math.sin(phi)*Math.sin(theta)
+);
+}
+
+function spawnGrid(){
+for(let i=0;i<15;i++){
+const ball=createBall();
+ball.position.copy(randomPosition());
 scene.add(ball);
 targets.push(ball);
 }
 }
 
-// ===== TRACKING =====
 function spawnTracking(){
-const ball=createBall(0xff0000,1.2);
+const ball=createBall();
+ball.position.copy(randomPosition());
 scene.add(ball);
 targets=[ball];
 }
 
-// ===== BOUNCE =====
 function spawnBounce(){
-bounceBall=createBall(0xff8800,1.2);
-bounceBall.position.set(0,5,0);
-bounceBall.userData.vx=0.2;
-bounceBall.userData.vy=0.25;
-bounceBall.userData.vz=0.18;
-scene.add(bounceBall);
+const ball=createBall();
+ball.position.copy(randomPosition());
+ball.userData.vel=new THREE.Vector3(
+(Math.random()-0.5)*0.4,
+(Math.random()-0.5)*0.4,
+(Math.random()-0.5)*0.4
+);
+scene.add(ball);
+targets=[ball];
 }
 
-// ===== CREATE BALL =====
-function createBall(color,size){
-return new THREE.Mesh(
-new THREE.SphereGeometry(size,32,32),
-new THREE.MeshStandardMaterial({color})
-);
+// ===== SHOOT =====
+addEventListener("mousedown", ()=>{
+if(!running)return;
+shots++;
+
+const ray=new THREE.Raycaster();
+ray.setFromCamera(new THREE.Vector2(0,0),camera);
+const hit=ray.intersectObjects(targets);
+
+if(hit.length>0){
+hits++;
+score++;
+scene.remove(hit[0].object);
+targets.splice(targets.indexOf(hit[0].object),1);
+
+if(mode==="tracking") spawnTracking();
+if(mode==="bounce") spawnBounce();
 }
+});
 
 // ===== TIMER =====
 setInterval(()=>{
 if(!running)return;
 timeLeft--;
-if(timeLeft<=0)endGame();
+if(timeLeft<=0) endGame();
 },1000);
 
 // ===== END =====
 function endGame(){
 running=false;
+document.exitPointerLock();
 hud.style.display="none";
 results.style.display="flex";
+
 const acc=shots?Math.round(hits/shots*100):0;
 rScore.textContent="Score: "+score;
 rHits.textContent="Hits: "+hits;
@@ -139,44 +183,20 @@ rShots.textContent="Shots: "+shots;
 rAcc.textContent="Accuracy: "+acc+"%";
 }
 
-// ===== RAYCAST =====
-const raycaster=new THREE.Raycaster();
-const mouse=new THREE.Vector2();
-
-window.addEventListener("mousemove",e=>{
-mouse.x=(e.clientX/window.innerWidth)*2-1;
-mouse.y=-(e.clientY/window.innerHeight)*2+1;
-});
-
 // ===== UPDATE =====
 function update(){
 if(!running)return;
 
-if(mode==="tracking"){
-angle+=0.02;
-targets[0].position.x=Math.cos(angle)*6;
-targets[0].position.z=Math.sin(angle)*6;
-shots++;
+if(mode==="tracking" && targets[0]){
+targets[0].position.copy(randomPosition(15));
 }
 
-if(mode==="bounce"){
-const b=bounceBall;
-b.position.x+=b.userData.vx;
-b.position.y+=b.userData.vy;
-b.position.z+=b.userData.vz;
-
-if(b.position.x>10||b.position.x<-10)b.userData.vx*=-1;
-if(b.position.z>10||b.position.z<-10)b.userData.vz*=-1;
-if(b.position.y>8||b.position.y<1)b.userData.vy*=-1;
-
-shots++;
-}
-
-raycaster.setFromCamera(mouse,camera);
-const intersects=raycaster.intersectObjects(mode==="bounce"?[bounceBall]:targets);
-
-if(intersects.length>0){
-score++;hits++;
+if(mode==="bounce" && targets[0]){
+const b=targets[0];
+b.position.add(b.userData.vel);
+if(b.position.x>30||b.position.x<-30)b.userData.vel.x*=-1;
+if(b.position.y>15||b.position.y<1)b.userData.vel.y*=-1;
+if(b.position.z>30||b.position.z<-30)b.userData.vel.z*=-1;
 }
 
 scoreEl.textContent="Score: "+score;
@@ -195,8 +215,8 @@ animate();
 // ===== BACK =====
 function backToMenu(){
 running=false;
+clearTargets();
 menu.style.display="flex";
 hud.style.display="none";
 results.style.display="none";
-clearScene();
 }

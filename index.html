@@ -5,7 +5,7 @@
 <title>Aim Trainer 3D</title>
 <link rel="stylesheet" href="style.css">
 <style>
-body { margin:0; overflow:hidden; background:black; cursor:none; }
+body { margin:0; overflow:hidden; background:black; }
 canvas { display:block; }
 </style>
 </head>
@@ -13,9 +13,9 @@ canvas { display:block; }
 
 <div id="menu" class="overlay">
   <h1>AIM TRAINER</h1>
-  <button id="gridBtn">GRIDSHOT 3D</button>
-  <button id="trackBtn">TRACKING 3D</button>
-  <button id="bounceBtn">BOUNCE 3D</button>
+  <button id="gridBtn">GRIDSHOT</button>
+  <button id="trackBtn">TRACKING</button>
+  <button id="bounceBtn">BOUNCE</button>
 </div>
 
 <div id="hud" class="overlay hud" style="display:none;">
@@ -35,7 +35,6 @@ canvas { display:block; }
 
 <canvas id="game"></canvas>
 
-<!-- THREE JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="game.js"></script>
 
