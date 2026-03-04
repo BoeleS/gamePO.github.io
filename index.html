@@ -1,18 +1,22 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-<meta charset="UTF-8">
-<title>Aim Trainer 3D – Gridshot</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Aim Trainer 3D</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="menu" class="overlay">
-  <h1>AIM TRAINER</h1>
+  <h1>AIM TRAINER 3D</h1>
+  <p>Kies een mode:</p>
   <button id="gridBtn">GRIDSHOT</button>
+  <button id="bounceBtn">BOUNCE TRACKING</button>
+  <button id="ballBtn">BALL TRACKING</button>
 </div>
 
 <div id="hud" class="overlay hud" style="display:none;">
+  <span id="modeName">MODE</span>
   <span id="score">PTS 0</span>
   <span id="time">1:00</span>
   <span id="accuracy">100%</span>
@@ -20,6 +24,7 @@
 
 <div id="results" class="overlay" style="display:none;">
   <h1>RESULTS</h1>
+  <p id="rMode"></p>
   <p id="rScore"></p>
   <p id="rHits"></p>
   <p id="rShots"></p>
