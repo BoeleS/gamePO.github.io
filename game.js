@@ -18,6 +18,11 @@ const scoreEl = document.getElementById("score");
 const timeEl = document.getElementById("time");
 const accEl = document.getElementById("accuracy");
 
+const rScore = document.getElementById("rScore");
+const rHits = document.getElementById("rHits");
+const rShots = document.getElementById("rShots");
+const rAcc = document.getElementById("rAcc");
+
 // ===== PAUSE MENU =====
 const pauseMenu = document.createElement("div");
 pauseMenu.className = "overlay";
@@ -42,6 +47,11 @@ let timeLeft = 30;
 let targets = [];
 let angle = 0;
 
+// Bounce character
+let player = null;
+const gravity = 0.6;
+const bounceStrength = -15;
+
 // ===== MOUSE =====
 let mouseX = 0, mouseY = 0;
 document.addEventListener("mousemove", e => {
@@ -52,6 +62,7 @@ document.addEventListener("mousemove", e => {
 // ===== BUTTONS =====
 document.getElementById("gridBtn").onclick = () => start("grid");
 document.getElementById("trackBtn").onclick = () => start("tracking");
+document.getElementById("bounceBtn").onclick = () => start("bounce");
 document.getElementById("backBtn").onclick = backToMenu;
 document.getElementById("resume").onclick = resume;
 document.getElementById("quit").onclick = backToMenu;
@@ -80,7 +91,17 @@ function start(m) {
   pauseMenu.style.display = "none";
   hud.style.display = "flex";
 
-  targets = mode === "grid" ? spawnGrid() : spawnTracking();
+  if (mode === "grid") targets = spawnGrid();
+  if (mode === "tracking") targets = spawnTracking();
+  if (mode === "bounce") {
+    player = {
+      x: canvas.width / 2,
+      y: canvas.height - 100,
+      vx: 6,
+      vy: bounceStrength,
+      r: 25
+    };
+  }
 }
 
 // ===== PAUSE =====
@@ -120,23 +141,18 @@ function newTarget() {
   };
 }
 
-// ===== GRIDSHOT CLICK (MISS COUNTS) =====
+// ===== CLICK GRID =====
 canvas.addEventListener("click", () => {
   if (!running || paused || mode !== "grid") return;
 
-  shots++; // ELKE KLIK = SCHOT
-  let hitSomething = false;
-
+  shots++;
   targets.forEach((t, i) => {
     if (Math.hypot(mouseX - t.x, mouseY - t.y) <= t.r) {
       score++;
       hits++;
       targets[i] = newTarget();
-      hitSomething = true;
     }
   });
-
-  // miss = accuracy gaat automatisch omlaag
 });
 
 // ===== TIMER =====
@@ -159,7 +175,7 @@ function endGame() {
   rAcc.textContent = `Accuracy: ${acc}%`;
 }
 
-// ===== LOOP =====
+// ===== UPDATE =====
 function update() {
   if (!running || paused) return;
 
@@ -176,21 +192,72 @@ function update() {
     }
   }
 
+  if (mode === "bounce") {
+    player.vy += gravity;
+    player.x += player.vx;
+    player.y += player.vy;
+
+    // Bounce vloer
+    if (player.y + player.r > canvas.height - 50) {
+      player.y = canvas.height - 50 - player.r;
+      player.vy = bounceStrength;
+    }
+
+    // Bounce muren
+    if (player.x + player.r > canvas.width || player.x - player.r < 0) {
+      player.vx *= -1;
+    }
+
+    shots++;
+    if (Math.hypot(mouseX - player.x, mouseY - player.y) <= player.r) {
+      score++;
+      hits++;
+    }
+  }
+
   timeEl.textContent = `⏱ ${timeLeft}`;
   scoreEl.textContent = `Score: ${score}`;
   accEl.textContent = `Accuracy: ${shots ? Math.round(hits / shots * 100) : 0}%`;
 }
 
+// ===== DRAW =====
+function drawHills() {
+  ctx.fillStyle = "#0a0a0a";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#111";
+  ctx.beginPath();
+  ctx.moveTo(0, canvas.height);
+  for (let i = 0; i <= canvas.width; i += 50) {
+    const height = Math.sin(i * 0.01) * 40;
+    ctx.lineTo(i, canvas.height - 100 + height);
+  }
+  ctx.lineTo(canvas.width, canvas.height);
+  ctx.fill();
+}
+
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  targets.forEach(t => {
-    ctx.beginPath();
-    ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
-    ctx.fillStyle = "red";
-    ctx.fill();
-  });
+  if (mode === "bounce") drawHills();
 
+  if (mode === "grid" || mode === "tracking") {
+    targets.forEach(t => {
+      ctx.beginPath();
+      ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+      ctx.fillStyle = "red";
+      ctx.fill();
+    });
+  }
+
+  if (mode === "bounce") {
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+    ctx.fillStyle = "orange";
+    ctx.fill();
+  }
+
+  // Crosshair
   ctx.strokeStyle = "white";
   ctx.beginPath();
   ctx.moveTo(mouseX - 8, mouseY);
