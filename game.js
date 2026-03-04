@@ -3,16 +3,17 @@ const canvas = document.getElementById("game");
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xaaaaaa);
 
-const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-camera.position.set(0,2,8);
+// CAMERA VERDER NAAR ACHTER + LAGERE FOV
+const camera = new THREE.PerspectiveCamera(65, innerWidth/innerHeight, 0.1, 2000);
+camera.position.set(0, 2, 14); // <<< BELANGRIJK: verder weg
 
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
-renderer.setPixelRatio(window.devicePixelRatio);   // <<< FIX VOOR WAZIG BEELD
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
 
 addEventListener("resize", ()=>{
   renderer.setSize(innerWidth, innerHeight);
-  renderer.setPixelRatio(window.devicePixelRatio); // <<< FIX OOK HIER
+  renderer.setPixelRatio(window.devicePixelRatio);
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
 });
@@ -42,24 +43,26 @@ const checker = createCheckerTexture();
 
 // ===== ROOM =====
 const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(30,30),
+  new THREE.PlaneGeometry(40,40),
   new THREE.MeshStandardMaterial({map:checker})
 );
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
+// PLATFORM VERDER WEG
 const platform = new THREE.Mesh(
-  new THREE.BoxGeometry(20,1.2,6),
+  new THREE.BoxGeometry(26,1.2,10),
   new THREE.MeshStandardMaterial({color:0x888888})
 );
-platform.position.set(0,0.6,-6);
+platform.position.set(0,0.6,-10);
 scene.add(platform);
 
+// MUUR VEEL VERDER WEG
 const backWall = new THREE.Mesh(
-  new THREE.PlaneGeometry(30,12),
+  new THREE.PlaneGeometry(40,16),
   new THREE.MeshStandardMaterial({map:checker})
 );
-backWall.position.set(0,6,-20);
+backWall.position.set(0,8,-30);
 scene.add(backWall);
 
 // ===== FIRST PERSON WEAPON =====
@@ -136,7 +139,7 @@ function startGrid(){
   results.style.display="none";
   hud.style.display="flex";
 
-  camera.position.set(0,2,8);
+  camera.position.set(0,2,14); // <<< BELANGRIJK
   camera.rotation.set(0,0,0);
 
   spawnThree();
@@ -145,9 +148,9 @@ function startGrid(){
 // ===== RANDOM TARGET POSITION =====
 function randomTargetPosition() {
   return {
-    x: (Math.random() * 20 - 10),   // veel verder links/rechts
-    y: (Math.random() * 3 + 1.5),   // hoogte
-    z: -(Math.random() * 10 + 10)   // diepte 10–20
+    x: (Math.random() * 26 - 13),   // veel breder
+    y: (Math.random() * 4 + 2),     // hoger
+    z: -(Math.random() * 12 + 16)   // veel verder weg
   };
 }
 
@@ -157,7 +160,7 @@ function spawnThree(){
 
   for(let i=0;i<3;i++){
     const ball=new THREE.Mesh(
-      new THREE.SphereGeometry(0.6,32,32),
+      new THREE.SphereGeometry(0.7,32,32),
       new THREE.MeshStandardMaterial({color:0x00ffff})
     );
 
@@ -190,7 +193,6 @@ addEventListener("mousedown", ()=>{
 
     const hitObj = hit[0].object;
 
-    // alleen dit target verplaatsen
     const p = randomTargetPosition();
     hitObj.position.set(p.x, p.y, p.z);
   }
