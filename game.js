@@ -46,7 +46,6 @@ const floor = new THREE.Mesh(
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
-// platform
 const platform = new THREE.Mesh(
   new THREE.BoxGeometry(20,1.2,6),
   new THREE.MeshStandardMaterial({color:0x888888})
@@ -54,13 +53,40 @@ const platform = new THREE.Mesh(
 platform.position.set(0,0.6,-6);
 scene.add(platform);
 
-// verre muur
 const backWall = new THREE.Mesh(
   new THREE.PlaneGeometry(30,12),
   new THREE.MeshStandardMaterial({map:checker})
 );
 backWall.position.set(0,6,-20);
 scene.add(backWall);
+
+// ===== FIRST PERSON WEAPON =====
+const weapon = new THREE.Group();
+
+const body = new THREE.Mesh(
+  new THREE.BoxGeometry(0.6,0.4,1.6),
+  new THREE.MeshStandardMaterial({color:0x222222})
+);
+body.position.set(0.4,-0.4,-1.2);
+weapon.add(body);
+
+const barrel = new THREE.Mesh(
+  new THREE.CylinderGeometry(0.08,0.08,1,16),
+  new THREE.MeshStandardMaterial({color:0x333333})
+);
+barrel.rotation.x = Math.PI/2;
+barrel.position.set(0.4,-0.35,-2);
+weapon.add(barrel);
+
+const grip = new THREE.Mesh(
+  new THREE.BoxGeometry(0.25,0.5,0.3),
+  new THREE.MeshStandardMaterial({color:0x111111})
+);
+grip.position.set(0.55,-0.7,-1.1);
+weapon.add(grip);
+
+camera.add(weapon);
+scene.add(camera);
 
 // ===== UI ELEMENTS =====
 const menu=document.getElementById("menu");
@@ -91,12 +117,6 @@ document.addEventListener("mousemove", e=>{
     camera.rotation.y -= e.movementX*0.002;
     camera.rotation.x -= e.movementY*0.002;
     camera.rotation.x=Math.max(-Math.PI/3,Math.min(Math.PI/3,camera.rotation.x));
-  }
-});
-document.addEventListener("keydown", e=>{
-  if(e.key==="Escape"){
-    document.exitPointerLock();
-    backToMenu();
   }
 });
 
@@ -168,6 +188,7 @@ addEventListener("mousedown", ()=>{
 
     const hitObj = hit[0].object;
 
+    // alleen dit target verplaatsen
     const p = randomTargetPosition();
     hitObj.position.set(p.x, p.y, p.z);
   }
