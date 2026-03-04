@@ -1,89 +1,3 @@
-<!DOCTYPE html>
-<html lang="nl">
-<head>
-<meta charset="UTF-8">
-<title>Aim Trainer 3D – Gridshot</title>
-
-<style>
-* { box-sizing: border-box; }
-html, body {
-  margin: 0;
-  padding: 0;
-  background: #000;
-  overflow: hidden;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  color: white;
-}
-canvas { display: block; }
-
-/* MENU / HUD / RESULTS */
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(10px);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 10;
-}
-button {
-  width: 260px;
-  margin: 10px;
-  padding: 16px;
-  font-size: 20px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  color: white;
-  background: linear-gradient(135deg, #ff2a2a, #ff7b00);
-}
-.hud {
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: flex-start;
-  background: none;
-  backdrop-filter: none;
-  pointer-events: none;
-  padding: 20px 40px;
-}
-.hud span {
-  font-size: 22px;
-  font-weight: 600;
-}
-</style>
-</head>
-<body>
-
-<!-- MENU -->
-<div id="menu" class="overlay">
-  <h1>AIM TRAINER</h1>
-  <button id="gridBtn">GRIDSHOT</button>
-</div>
-
-<!-- HUD -->
-<div id="hud" class="overlay hud" style="display:none;">
-  <span id="score">PTS 0</span>
-  <span id="time">1:00</span>
-  <span id="accuracy">100%</span>
-</div>
-
-<!-- RESULTS -->
-<div id="results" class="overlay" style="display:none;">
-  <h1>RESULTS</h1>
-  <p id="rScore"></p>
-  <p id="rHits"></p>
-  <p id="rShots"></p>
-  <p id="rAcc"></p>
-  <button id="backBtn">BACK TO MENU</button>
-</div>
-
-<canvas id="game"></canvas>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-<script>
 // ===== BASIC SETUP =====
 const canvas = document.getElementById("game");
 const scene = new THREE.Scene();
@@ -124,7 +38,7 @@ function createCheckerTexture(size=512, squares=8){
 }
 const checker = createCheckerTexture();
 
-// ===== ROOM (MET PLATFORM + VERRE MUUR) =====
+// ===== ROOM =====
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(30,30),
   new THREE.MeshStandardMaterial({map:checker})
@@ -132,7 +46,7 @@ const floor = new THREE.Mesh(
 floor.rotation.x = -Math.PI/2;
 scene.add(floor);
 
-// lage doos / platform
+// platform
 const platform = new THREE.Mesh(
   new THREE.BoxGeometry(20,1.2,6),
   new THREE.MeshStandardMaterial({color:0x888888})
@@ -140,12 +54,12 @@ const platform = new THREE.Mesh(
 platform.position.set(0,0.6,-6);
 scene.add(platform);
 
-// muur verder weg
+// verre muur
 const backWall = new THREE.Mesh(
   new THREE.PlaneGeometry(30,12),
   new THREE.MeshStandardMaterial({map:checker})
 );
-backWall.position.set(0,6,-16);
+backWall.position.set(0,6,-20);
 scene.add(backWall);
 
 // ===== UI ELEMENTS =====
@@ -206,15 +120,18 @@ function startGrid(){
   spawnThree();
 }
 
-// ===== SPAWN 3 TARGETS MET DIEPTE =====
+// ===== RANDOM TARGET POSITION =====
+function randomTargetPosition() {
+  return {
+    x: (Math.random() * 20 - 10),   // veel verder links/rechts
+    y: (Math.random() * 3 + 1.5),   // hoogte
+    z: -(Math.random() * 10 + 10)   // diepte 10–20
+  };
+}
+
+// ===== SPAWN 3 TARGETS =====
 function spawnThree(){
   clearTargets();
-
-  const positions = [
-    [-2.2, 2.0, -10.0],  // dichtbij
-    [ 0.0, 2.0, -12.0],  // midden
-    [ 2.2, 2.0, -14.0]   // ver weg
-  ];
 
   for(let i=0;i<3;i++){
     const ball=new THREE.Mesh(
@@ -222,11 +139,8 @@ function spawnThree(){
       new THREE.MeshStandardMaterial({color:0x00ffff})
     );
 
-    ball.position.set(
-      positions[i][0] + (Math.random()*0.4 - 0.2),
-      positions[i][1] + (Math.random()*0.4 - 0.2),
-      positions[i][2] + (Math.random()*0.3 - 0.15)
-    );
+    const p = randomTargetPosition();
+    ball.position.set(p.x, p.y, p.z);
 
     scene.add(ball);
     targets.push(ball);
@@ -251,7 +165,11 @@ addEventListener("mousedown", ()=>{
   if(hit.length>0){
     hits++;
     score+=386;
-    spawnThree();
+
+    const hitObj = hit[0].object;
+
+    const p = randomTargetPosition();
+    hitObj.position.set(p.x, p.y, p.z);
   }
 });
 
@@ -324,7 +242,3 @@ function backToMenu(){
   hud.style.display="none";
   results.style.display="none";
 }
-</script>
-
-</body>
-</html>
